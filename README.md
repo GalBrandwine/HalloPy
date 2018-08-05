@@ -14,7 +14,7 @@ Dependency lybraries:
 # Usage:
 
 1. make sure you have all dependancy lybraries.
-  for graet openCV installation tutorial refer to:
+  for great openCV installation tutorial refer to:
   https://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/
 
 2.1 turn on Tello drone and connect to it's wifi
