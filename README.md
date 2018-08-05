@@ -21,7 +21,7 @@ Dependency lybraries:
 
 2.2 from terminal: 
 
-    $ python Hallo.py - /url-to-haar-cascade-location/haarcascade_frontalface_default.xml
+    $ python Hallo.py --cascade /location_to_haarcascade/haarcascade_frontalface_default.xml
 
 3
   Application usage:
