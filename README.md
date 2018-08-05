@@ -1,16 +1,16 @@
 # Hallo
 a hand controlled Tello
 
-Enviroment:
+_Enviroment:
 * ubuntu 16.4
 * python 3.5.2
 
-Dependency lybraries:
+_Dependency lybraries:
 * OpenCV 3.3.2
 * tellopy repository - https://github.com/hanyazou/TelloPy.git
 * numpy 1.14.5
 
-Usage:
+# Usage:
 
 1. make sure you have all dependancy lybraries.
   for graet openCV installation tutorial refer to:
@@ -42,8 +42,12 @@ Usage:
     press 'esc' to exit program ( only after drone landed)
     
 
-Tanks to:
+# Tanks to:
 * OpenCV - for the greatest computer Vision library in this world ( and others)
+
+* tellopy repo - for making a super freindly drone api
+
 * Adrian and his crew at - https://www.pyimagesearch.com/ for the best How-to's tutorials
   and email support.
+  
 * Izane for his FingerDetection - https://github.com/lzane/Fingers-Detection-using-OpenCV-and-Python
