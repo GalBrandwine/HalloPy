@@ -1,5 +1,6 @@
-# Hallo
-a hand controlled Tello
+# Hallo - a hand controlled Tello
+DJI Tello controller using hand gestures python app
+
 
 Enviroment:
 * ubuntu 16.4
@@ -20,11 +21,11 @@ Dependency lybraries:
 
 2.2 from terminal: 
 
-    python Hallo.py - /url-to-haar-cascade-location/haarcascade_frontalface.xml
+    $ python Hallo.py - /url-to-haar-cascade-location/haarcascade_frontalface.xml
 
 3
   Application usage:
-
+   
     press 'b' - to detect palm ( depend on the enviruments lights, a Thresh Hold slider tuning may be needed)
       center the detected palm at the center of the detection_frame FOR 5 seconds 
       pressing b again will reset calibration.
