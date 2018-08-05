@@ -1,11 +1,11 @@
 # Hallo
 a hand controlled Tello
 
-_Enviroment:
+Enviroment:
 * ubuntu 16.4
 * python 3.5.2
 
-_Dependency lybraries:
+Dependency lybraries:
 * OpenCV 3.3.2
 * tellopy repository - https://github.com/hanyazou/TelloPy.git
 * numpy 1.14.5
