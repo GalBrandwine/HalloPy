@@ -398,14 +398,14 @@ def main(drone):
                                 #         rotate_right))
                                 try:
                                     if inHomeCenter is False:  # out of Home center
-                                        # if move_left > tollerance:
-                                        #     drone.left(move_left)
-                                        # if move_right > tollerance:
-                                        #     drone.right(move_right)
-                                        # if move_up > tollerance:
-                                        #     drone.up(move_up)
-                                        # if move_down > tollerance:
-                                        #     drone.down(move_down)
+                                        if move_left > tollerance:
+                                            drone.left(move_left)
+                                        if move_right > tollerance:
+                                            drone.right(move_right)
+                                        if move_up > tollerance:
+                                            drone.up(move_up)
+                                        if move_down > tollerance:
+                                            drone.down(move_down)
                                         pass
                                     elif inHomeCenter is True:  # in Home center, don't move side ways nor up & down
                                         drone.left(0)
