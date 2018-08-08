@@ -27,7 +27,7 @@ import time
 HalloTitle = 'Hallo - a hand controlled Tello'
 cap_region_x_begin = 0.6  # start point/total width
 cap_region_y_end = 0.6  # start point/total width
-threshold = 60  # BINARY threshold
+threshold = 50  # BINARY threshold
 blurValue = 41  # GaussianBlur parameter
 bgSubThreshold = 50
 learningRate = 0
