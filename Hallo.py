@@ -24,6 +24,7 @@ import time
 
 
 # parameters
+HalloTitle = 'Hallo - a hand controlled Tello'
 cap_region_x_begin = 0.6  # start point/total width
 cap_region_y_end = 0.6  # start point/total width
 threshold = 60  # BINARY threshold
@@ -282,7 +283,7 @@ def main(drone):
 
         cv2.rectangle(frame, (int(cap_region_x_begin * frame.shape[1]) - 20, 0),
                       (frame.shape[1], int(cap_region_y_end * frame.shape[0]) + 20), (255, 0, 0), 2)
-        cv2.imshow('original', frame)
+        cv2.imshow(HalloTitle, frame)
 
         #  Main operation
         if isBgCaptured == 1:  # this part wont run until background captured
@@ -479,7 +480,10 @@ def main(drone):
                 old_frame_captured = False
 
             cv2.circle(img, frameCenter, calibRadius, (0, 0, 255), thickness=3)
-            cv2.imshow('mask', img)
+
+            frame[0:int(cap_region_y_end * frame.shape[0]),
+            int(cap_region_x_begin * frame.shape[1]):frame.shape[1], :] = img
+            cv2.imshow(HalloTitle, frame)
 
             # operations using detected fingers, maybe good for later
             # if triggerSwitch is True:
@@ -542,5 +546,5 @@ def main(drone):
 
 if __name__ == '__main__':
     drone = None
-    drone = init()
+    # drone = init()
     main(drone)
