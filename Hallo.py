@@ -60,6 +60,8 @@ lk_params = dict(winSize=(15, 15),
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--cascade", required=True,
                 help="path to where the face cascade resides")
+ap.add_argument("-d", "--debug", required=False, default='normal',
+                help="enter: debug, for running as a simulation, witout a Tello drone connected")
 args = vars(ap.parse_args())
 
 # load the face detector cascade
@@ -229,17 +231,11 @@ def init():
 
         drone.connect()
         drone.wait_for_connection(60.0)
-        # drone.takeoff()
 
-        # time.sleep(5)
-        # drone.down(50)
-        # time.sleep(5)
-        # drone.land()
-        # time.sleep(5)
     except Exception as ex:
         print(ex)
-    # finally:
-    #     drone.quit()
+        drone.quit()
+        return None
     return drone
 
 
@@ -535,6 +531,16 @@ def main(drone):
             elif lifted is True:
                 print("control switched to detected hand")
                 handControl = True
+        elif k == ord('z'):
+            """ calibrating Threshold from keyboard """
+            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
+            if tempThreshold >= 0:
+                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+        elif k == ord('x'):
+            """ calibrating Threshold from keyboard """
+            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
+            if tempThreshold <= 100:
+                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
 
     # cleanup the camera and close any open windows
     camera.release()
@@ -545,6 +551,9 @@ def main(drone):
 
 
 if __name__ == '__main__':
-    drone = None
-    # drone = init()
-    main(drone)
+    if args["debug"] == "debug":
+        main(None)
+    else:
+        drone = init()
+        if drone is not None:
+            main(drone)

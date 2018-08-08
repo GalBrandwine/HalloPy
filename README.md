@@ -39,6 +39,9 @@ Dependency lybraries:
       toggeling back to keyboard will force drone to hover in the same place
       
     press 'l' - to land ( at any time)
+
+    press 'x' - to adjust background' threshold - for thicker palm recognition
+    press 'z' - to adjust background' threshold - for thinner palm recognition
   
     press 'esc' to exit program ( only after drone landed)
     
