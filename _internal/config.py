@@ -5,7 +5,7 @@ import cv2
 class Config(object):
     """Config class holds all Hallo configurations.  """
 
-    def __init__(self, halloTitle='Hallo - a hand controlled Tello', debug=None):
+    def __init__(self, halloTitle='Hallo - a hand controlled Tello', debug=None, drone=None):
         """__init__ method
         Args:
             :arg halloTitle (string): name for the cv2.imshow window.
@@ -36,6 +36,7 @@ class Config(object):
             handControl (bool): Flag for switching drone's control between detected-palm and keyboard.
             lifted (bool): Drone state flag.
             hover (bool): Drone state flag.
+            drone (TelloPy_object): A drone object (assuming its connected to Tello_drone)
             debug (bool): Debug flag.
             lk_params (dict): Parameters for lucas kanade optical flow.
 
@@ -63,7 +64,9 @@ class Config(object):
         self.handControl = False
         self.lifted = False
         self.hover = False
+        self.drone = drone
         self.debug = debug
+        self.desiredPoint = None  # todo add comment
         # Parameters for lucas kanade optical flow
         self.lk_params = dict(winSize=(15, 15),
                               maxLevel=2,

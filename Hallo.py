@@ -5,7 +5,7 @@
 # Press t - to take off
 # Toggle c - to change drone control keyboard\detected_hand
 # Press l - to land
-# Press esc - to exit (need to land fist)
+# Press esc - to exit (need to land first)
 
 import argparse
 import threading
@@ -23,40 +23,9 @@ import time
 # opencv: 3.3.0
 
 
-# parameters
-HalloTitle = 'Hallo - a hand controlled Tello'
-cap_region_x_begin = 0.6  # start point/total width
-cap_region_y_end = 0.6  # start point/total width
-threshold = 50  # BINARY threshold
-blurValue = 41  # GaussianBlur parameter
-bgSubThreshold = 50
-learningRate = 0
-bgModel = None
-
-# blackBox param to cover discovered faces
-face_padding_x = 20
-face_padding_y = 60
-
-# variables
-timeout = time.time() + 5  # 5 seconds from now
-calibRadius = 15
-tollerance = 10
-palmCenterMiddleFingerMaxDistance = 0
-isBgCaptured = 0  # bool, whether the background captured
-triggerSwitch = False  # if true, keyborad simulator works
-calibrated = False
-inHomeCenter = False
-old_frame_captured = False
-handControl = False
-lifted = False
-hover = False
-
-# Parameters for lucas kanade optical flow
-lk_params = dict(winSize=(15, 15),
-                 maxLevel=2,
-                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-
 # construct the argument parse and parse the arguments
+from HalloPy._internal import config
+
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--cascade", required=True,
                 help="path to where the face cascade resides")
@@ -68,52 +37,47 @@ args = vars(ap.parse_args())
 detector = cv2.CascadeClassifier(args["cascade"])
 
 
-def keyboardInputThread():
-    while 1 == 1:
+def keyboardInputThread(mainCamera, conf):
+    while mainCamera.isOpened:
         # Keyboard OP
         k = cv2.waitKey(10)
-        if k == 27 and lifted is False:  # press ESC to exit
+        if k == 27 and conf.lifted is False:  # press ESC to exit
             print('!!!quiting!!!')
-            if drone is not None:
-                drone.quit()
+            if conf.drone is not None:
+                conf.drone.quit()
             break
         elif k == 27:
             print('!!!cant quit without landing!!!')
         elif k == ord('b'):  # press 'b' to capture the background
-            bgModel = cv2.createBackgroundSubtractorMOG2(0, bgSubThreshold)
-            isBgCaptured = 1
+            conf.bgModel = cv2.createBackgroundSubtractorMOG2(0, conf.bgSubThreshold)
+            conf.isBgCaptured = 1
             print('!!!Background Captured!!!')
-        # elif k == ord('r'):  # press 'r' to reset the background
-        #     bgModel = None
-        #     triggerSwitch = False
-        #     isBgCaptured = 0
-        #     print('!!!Reset BackGround!!!')
-        elif k == ord('t') and calibrated is True:
+        elif k == ord('t') and conf.calibrated is True:
             """Take off"""
             print('!!!Take of!!!')
-            if drone is not None and lifted is not True:
+            if conf.drone is not None and conf.lifted is not True:
                 print('Wait 5 seconds')
-                drone.takeoff()
+                conf.drone.takeoff()
                 time.sleep(5)
-            lifted = True
+            conf.lifted = True
         elif k == ord('l'):
             """Land"""
-            old_frame_captured = False
-            lifted = False
+            conf.old_frame_captured = False
+            conf.lifted = False
             print('!!!Landing!!!')
-            if drone is not None:
+            if conf.drone is not None:
                 print('Wait 5 seconds')
-                drone.land()
+                conf.drone.land()
                 time.sleep(5)
         elif k == ord('c'):
             """Control"""
-            if handControl is True:
-                handControl = False
-                old_frame_captured = False
+            if conf.handControl is True:
+                conf.handControl = False
+                conf.old_frame_captured = False
                 print("control switched to keyboard")
-            elif lifted is True:
+            elif conf.lifted is True:
                 print("control switched to detected hand")
-                handControl = True
+                conf.handControl = True
         elif k == ord('z'):
             """ calibrating Threshold from keyboard """
             tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
@@ -129,8 +93,8 @@ def printThreshold(thr):
     print("! Changed threshold to " + str(thr))
 
 
-def removeBG(frame):
-    fgmask = bgModel.apply(frame, learningRate=learningRate)
+def removeBG(frame, conf):
+    fgmask = conf.bgModel.apply(frame, learningRate=conf.learningRate)
     kernel = np.ones((3, 3), np.uint8)
     fgmask = cv2.erode(fgmask, kernel, iterations=1)
     res = cv2.bitwise_and(frame, frame, mask=fgmask)
@@ -161,7 +125,7 @@ def square_distance(x, y):
     return sum([(xi - yi) ** 2 for xi, yi in zip(x[0], y[0])])
 
 
-def calculateOpticalFlow(old_gray, frame_gray, p0):
+def calculateOpticalFlow(old_gray, frame_gray, p0, conf):
     """
         This function tracks the edge of the Middle finger
         :param old_gray: old frame, gray scale
@@ -170,10 +134,9 @@ def calculateOpticalFlow(old_gray, frame_gray, p0):
         :return: p0 - updated tracking point,
     """
     # calculate optical flow
-    p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+    p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **conf.lk_params)
     if p1 is None:
-        global old_frame_captured
-        old_frame_captured = False
+        conf.old_frame_captured = False
         good_new = p0[st == 1]
     else:
         good_new = p1[st == 1]
@@ -199,7 +162,8 @@ def drawMovementsAxes(inputImage):
     return outPutframeCenter
 
 
-def exctractDroneCommands(palmCenter, middleFingerEdge, frameCenter, img):
+def exctractDroneCommands(palmCenter, middleFingerEdge, frameCenter, img,
+                          conf):  # todo: break function to smaller functions
     """Extract drone movement commands"""
     move_left = 0
     move_right = 0
@@ -209,7 +173,6 @@ def exctractDroneCommands(palmCenter, middleFingerEdge, frameCenter, img):
     move_backward = 0
     rotate_left = 0
     rotate_right = 0
-    global palmCenterMiddleFingerMaxDistance
 
     move_left = frameCenter[0] - palmCenter[0]
     if move_left < 0:
@@ -242,9 +205,10 @@ def exctractDroneCommands(palmCenter, middleFingerEdge, frameCenter, img):
         rotate_right = int((angleIdDegrees - 90) ** 1.3)
         rotate_left = 0
 
+    palmCenterMiddleFingerMaxDistance = conf.palmCenterMiddleFingerMaxDistance
     distance = palmCenter[1] - middleFingerEdge[0][0][1]
     if distance > palmCenterMiddleFingerMaxDistance:
-        palmCenterMiddleFingerMaxDistance = distance
+        conf.palmCenterMiddleFingerMaxDistance = palmCenterMiddleFingerMaxDistance = distance
 
     normalizedDistence = distance - palmCenterMiddleFingerMaxDistance / 3.0
     if normalizedDistence < palmCenterMiddleFingerMaxDistance / 2.0:
@@ -296,22 +260,16 @@ def init():
     return drone
 
 
-def main(drone):
+def main(conf):
     """ Camera preparations
     :param drone: Tello drone, after connection established
     """
-    global palmCenterMiddleFingerMaxDistance
-    global threshold
-    global calibrated
-    global old_frame_captured
-    global timeout
-    global handControl
-    global isBgCaptured
-    global desiredPoint
-    global bgModel
-    global lifted
-    global inHomeCenter
-    global hover
+
+    face_padding_y = conf.face_padding_y
+    face_padding_x = conf.face_padding_x
+    cap_region_x_begin = conf.cap_region_x_begin
+    cap_region_y_end = conf.cap_region_y_end
+    blurValue = conf.blurValue
 
     camera = cv2.VideoCapture(0)
     print("camera brightness: {}".format(camera.get(cv2.CAP_PROP_BRIGHTNESS)))
@@ -319,10 +277,10 @@ def main(drone):
 
     """ThreshHolder adjuster tracker"""
     cv2.namedWindow('trackbar')
-    cv2.createTrackbar('trh1', 'trackbar', threshold, 100, printThreshold)
-    cv2.namedWindow(HalloTitle)
+    cv2.createTrackbar('trh1', 'trackbar', conf.threshold, 100, printThreshold)
+    cv2.namedWindow(conf.halloTitle)
 
-    keyBoardThread = threading.Thread(name='keyBoardThread', target=keyboardInputThread)
+    keyBoardThread = threading.Thread(name='keyBoardThread', target=keyboardInputThread, args=(camera, conf))
     keyBoardThread.start()
 
     while camera.isOpened():
@@ -336,16 +294,17 @@ def main(drone):
         faces = detector.detectMultiScale(gray, 1.3, 5)
 
         #  Black rectangle over faces to remove skin noises
+
         for (x, y, w, h) in faces:
             img[y - face_padding_y:y + h + face_padding_y, x - face_padding_x:x + w + face_padding_x, :] = 0
 
         cv2.rectangle(frame, (int(cap_region_x_begin * frame.shape[1]) - 20, 0),
                       (frame.shape[1], int(cap_region_y_end * frame.shape[0]) + 20), (255, 0, 0), 2)
-        cv2.imshow(HalloTitle, frame)
+        cv2.imshow(conf.halloTitle, frame)
 
         #  Main operation
-        if isBgCaptured == 1:  # this part wont run until background captured
-            img = removeBG(frame)
+        if conf.isBgCaptured == 1:  # this part wont run until background captured
+            img = removeBG(frame, conf)
             img = img[0:int(cap_region_y_end * frame.shape[0]),
                   int(cap_region_x_begin * frame.shape[1]):frame.shape[1]]  # clip the ROI
 
@@ -379,7 +338,7 @@ def main(drone):
 
                 (cX, cY) = handCenterOfMass(res)  # palm center of mass
 
-                if handControl is False:  # draw palm in red
+                if conf.handControl is False:  # draw palm in red
                     palmColor = (0, 0, 255)
                 else:
                     palmColor = (0, 255, 0)  # draw palm in green
@@ -390,21 +349,21 @@ def main(drone):
                 # Implementing OpticalFlow only on one point: the highest (== smallest Y value) point of the contour,
                 # which is corresponding to the middle finger
                 if math.sqrt((cX - frameCenter[0]) ** 2 + (
-                        cY - frameCenter[1]) ** 2) <= calibRadius:
-                    inHomeCenter = True
+                        cY - frameCenter[1]) ** 2) <= conf.calibRadius:
+                    conf.inHomeCenter = True
                 else:
-                    inHomeCenter = False
+                    conf.inHomeCenter = False
 
-                if calibrated or inHomeCenter and time.time() > timeout:
+                if conf.calibrated or conf.inHomeCenter and time.time() > conf.timeout:
                     '''
                     If true:
                         We are calibrated or we have just finished calibrating
                         and we can start with movement extraction
                     '''
-                    calibrated = True
+                    conf.calibrated = True
 
-                    if old_frame_captured is False:
-                        old_frame_captured = True
+                    if conf.old_frame_captured is False:
+                        conf.old_frame_captured = True
                         # Take first frame and find corners in it
                         old_frame = extractedMovement
                         old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
@@ -417,7 +376,7 @@ def main(drone):
 
                     # capture current frame
                     frame_gray = cv2.cvtColor(extractedMovement, cv2.COLOR_BGR2GRAY)
-                    p0, old_gray = calculateOpticalFlow(old_gray, frame_gray, p0)
+                    p0, old_gray = calculateOpticalFlow(old_gray, frame_gray, p0, conf)
 
                     desiredPoint = p0
                     if len(desiredPoint) > 0:
@@ -436,7 +395,7 @@ def main(drone):
                             * translate distance(palm_center_of_mass, center_of_img) to left/right/move_up/move_down drone commands
                         """
                         move_left, move_right, move_up, move_down, move_forward, move_backward, rotate_left, rotate_right = exctractDroneCommands(
-                            (cX, cY), desiredPoint, frameCenter, img)
+                            (cX, cY), desiredPoint, frameCenter, img, conf)
 
                         '''Debug'''
 
@@ -446,69 +405,69 @@ def main(drone):
                                 rotate_left,
                                 rotate_right))
 
-                        if drone is not None:  # drone is None in debug
-                            if handControl is True and lifted is True:
+                        if conf.drone is not None:  # drone is None in debug
+                            if conf.handControl is True and conf.lifted is True:
                                 """Drone is in the air, and control directed to palm, only when center of palm is out of Frame center"""
-                                hover = False
+                                conf.hover = False
                                 # print(
                                 #     "move_left: {}, move_right: {}, move_up: {}, move_down: {}, move_forward: {}, move_backward: {}, rotate_left: {}, rotate_right: {}".format(
                                 #         move_left, move_right, move_up, move_down, move_forward, move_backward,
                                 #         rotate_left,
                                 #         rotate_right))
                                 try:
-                                    if inHomeCenter is False:  # out of Home center
-                                        if move_left > tollerance:
-                                            drone.left(move_left)
-                                        if move_right > tollerance:
-                                            drone.right(move_right)
-                                        if move_up > tollerance:
-                                            drone.up(move_up)
-                                        if move_down > tollerance:
-                                            drone.down(move_down)
+                                    if conf.inHomeCenter is False:  # out of Home center
+                                        if move_left > conf.tollerance:
+                                            conf.drone.left(move_left)
+                                        if move_right > conf.tollerance:
+                                            conf.drone.right(move_right)
+                                        if move_up > conf.tollerance:
+                                            conf.drone.up(move_up)
+                                        if move_down > conf.tollerance:
+                                            conf.drone.down(move_down)
                                         pass
-                                    elif inHomeCenter is True:  # in Home center, don't move side ways nor up & down
-                                        drone.left(0)
-                                        drone.right(0)
-                                        drone.up(0)
-                                        drone.down(0)
+                                    elif conf.inHomeCenter is True:  # in Home center, don't move side ways nor up & down
+                                        conf.drone.left(0)
+                                        conf.drone.right(0)
+                                        conf.drone.up(0)
+                                        conf.drone.down(0)
 
-                                    if rotate_left > tollerance:
+                                    if rotate_left > conf.tollerance:
                                         if rotate_left > 100:
-                                            drone.counter_clockwise(100)
+                                            conf.drone.counter_clockwise(100)
                                         else:
-                                            drone.counter_clockwise(rotate_left)
-                                    if rotate_right > tollerance:
+                                            conf.drone.counter_clockwise(rotate_left)
+                                    if rotate_right > conf.tollerance:
                                         if rotate_right > 100:
-                                            drone.clockwise(100)
+                                            conf.drone.clockwise(100)
                                         else:
-                                            drone.clockwise(rotate_right)
-                                    if move_forward > tollerance:
+                                            conf.drone.clockwise(rotate_right)
+                                    if move_forward > conf.tollerance:
                                         if move_forward > 100:
-                                            drone.forward(100)
+                                            conf.drone.forward(100)
                                         else:
-                                            drone.forward(move_forward)
-                                    if move_backward > tollerance:
+                                            conf.drone.forward(move_forward)
+                                    if move_backward > conf.tollerance:
                                         if move_backward > 100:
-                                            drone.backward(100)
+                                            conf.drone.backward(100)
                                         else:
-                                            drone.backward(move_backward)
+                                            conf.drone.backward(move_backward)
                                 except Exception as ex:
                                     print(ex)
                                     pass
 
                                 # print("sending drone movement commands")
-                            elif hover is False:
+                            elif conf.hover is False:
                                 """Control directed to keyboard or drone is not in the air"""
                                 try:
-                                    hover = True
-                                    drone.left(0)
-                                    drone.right(0)
-                                    drone.up(0)
-                                    drone.down(0)
-                                    drone.counter_clockwise(0)
-                                    drone.clockwise(0)
-                                    drone.forward(0)
-                                    drone.backward(0)
+                                    conf.hover = True
+                                    conf.drone.left(0)
+                                    conf.drone.right(0)
+                                    conf.drone.up(0)
+                                    conf.drone.down(0)
+                                    conf.drone.counter_clockwise(0)
+                                    conf.drone.clockwise(0)
+                                    conf.drone.forward(0)
+                                    conf.drone.backward(0)
                                 except Exception as ex:
                                     print(ex)
                                     pass
@@ -517,32 +476,33 @@ def main(drone):
                         cv2.circle(img, (desiredPoint[0][0][0], desiredPoint[0][0][1]), 10, (0, 255, 255), -1)
 
                     # draw green filled circle
-                    cv2.circle(img, frameCenter, calibRadius, (0, 255, 0), -1)
+                    cv2.circle(img, frameCenter, conf.calibRadius, (0, 255, 0), -1)
 
-            elif time.time() > timeout:
+            elif time.time() > conf.timeout:
                 """
                     reset timer 
                     reset calibration flag
                     reset opticalFlow previous frame captured flag
                 """
-                timeout = time.time() + 5
-                calibrated = False
-                old_frame_captured = False
+                conf.timeout = time.time() + 5
+                conf.calibrated = False
+                conf.old_frame_captured = False
 
                 # TODO: reset all drone movements, because hand is not calibrated
                 # reset palm movement globals
-                palmCenterMiddleFingerMaxDistance = 0
+                conf.palmCenterMiddleFingerMaxDistance = 0
                 print("calibration reseted!")
             else:
                 # TODO: reset all drone movements, because hand is not calibrated
-                old_frame_captured = False
+                conf.old_frame_captured = False
 
-            cv2.circle(img, frameCenter, calibRadius, (0, 0, 255), thickness=3)
+            cv2.circle(img, frameCenter, conf.calibRadius, (0, 0, 255), thickness=3)
 
             frame[0:int(cap_region_y_end * frame.shape[0]),
             int(cap_region_x_begin * frame.shape[1]):frame.shape[1], :] = img
-            cv2.imshow(HalloTitle, frame)
-
+            cv2.imshow(conf.halloTitle, frame)
+        if keyBoardThread.is_alive() == False:
+            break
             # operations using detected fingers, maybe good for later
             # if triggerSwitch is True:
             #     if isFinishCal is True and cnt <= 2:
@@ -608,17 +568,16 @@ def main(drone):
     camera.release()
     cv2.destroyAllWindows()
     # kill drone threads
-    if drone is not None:
-        drone.quit()
+    if conf.drone is not None:
+        conf.drone.quit()
 
 
 # todo: make a class of constant variables that is being loaded from a config file and then passed to main and to keyBoardThread
 if __name__ == '__main__':
-
+    configHandler = config.Config()
     if args["debug"] == "debug":
-        main(None)
+        main(configHandler)
     else:
-        drone = init()
-        if drone is not None:
-            # keyBoardThread.start()
-            main(drone)
+        configHandler.drone = init()
+        if configHandler.drone is not None:
+            main(configHandler)
