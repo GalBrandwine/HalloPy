@@ -8,6 +8,7 @@
 # Press esc - to exit (need to land fist)
 
 import argparse
+import threading
 from builtins import print
 import tellopy
 import cv2
@@ -68,7 +69,61 @@ detector = cv2.CascadeClassifier(args["cascade"])
 
 
 def keyboardInputThread():
-    while True:
+    while 1 == 1:
+        # Keyboard OP
+        k = cv2.waitKey(10)
+        if k == 27 and lifted is False:  # press ESC to exit
+            print('!!!quiting!!!')
+            if drone is not None:
+                drone.quit()
+            break
+        elif k == 27:
+            print('!!!cant quit without landing!!!')
+        elif k == ord('b'):  # press 'b' to capture the background
+            bgModel = cv2.createBackgroundSubtractorMOG2(0, bgSubThreshold)
+            isBgCaptured = 1
+            print('!!!Background Captured!!!')
+        # elif k == ord('r'):  # press 'r' to reset the background
+        #     bgModel = None
+        #     triggerSwitch = False
+        #     isBgCaptured = 0
+        #     print('!!!Reset BackGround!!!')
+        elif k == ord('t') and calibrated is True:
+            """Take off"""
+            print('!!!Take of!!!')
+            if drone is not None and lifted is not True:
+                print('Wait 5 seconds')
+                drone.takeoff()
+                time.sleep(5)
+            lifted = True
+        elif k == ord('l'):
+            """Land"""
+            old_frame_captured = False
+            lifted = False
+            print('!!!Landing!!!')
+            if drone is not None:
+                print('Wait 5 seconds')
+                drone.land()
+                time.sleep(5)
+        elif k == ord('c'):
+            """Control"""
+            if handControl is True:
+                handControl = False
+                old_frame_captured = False
+                print("control switched to keyboard")
+            elif lifted is True:
+                print("control switched to detected hand")
+                handControl = True
+        elif k == ord('z'):
+            """ calibrating Threshold from keyboard """
+            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
+            if tempThreshold >= 0:
+                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+        elif k == ord('x'):
+            """ calibrating Threshold from keyboard """
+            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
+            if tempThreshold <= 100:
+                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
 
 def printThreshold(thr):
     print("! Changed threshold to " + str(thr))
@@ -257,6 +312,7 @@ def main(drone):
     global lifted
     global inHomeCenter
     global hover
+
     camera = cv2.VideoCapture(0)
     print("camera brightness: {}".format(camera.get(cv2.CAP_PROP_BRIGHTNESS)))
     camera.set(cv2.CAP_PROP_BRIGHTNESS, 0.5)
@@ -264,6 +320,10 @@ def main(drone):
     """ThreshHolder adjuster tracker"""
     cv2.namedWindow('trackbar')
     cv2.createTrackbar('trh1', 'trackbar', threshold, 100, printThreshold)
+    cv2.namedWindow(HalloTitle)
+
+    keyBoardThread = threading.Thread(name='keyBoardThread', target=keyboardInputThread)
+    keyBoardThread.start()
 
     while camera.isOpened():
         ret, frame = camera.read()
@@ -489,60 +549,60 @@ def main(drone):
             #         print(cnt)
             #         # app('System Events').keystroke(' ')  # simulate pressing blank space
 
-        # Keyboard OP
-        k = cv2.waitKey(10)
-        if k == 27 and lifted is False:  # press ESC to exit
-            print('!!!quiting!!!')
-            if drone is not None:
-                drone.quit()
-            break
-        elif k == 27:
-            print('!!!cant quit without landing!!!')
-        elif k == ord('b'):  # press 'b' to capture the background
-            bgModel = cv2.createBackgroundSubtractorMOG2(0, bgSubThreshold)
-            isBgCaptured = 1
-            print('!!!Background Captured!!!')
-        # elif k == ord('r'):  # press 'r' to reset the background
-        #     bgModel = None
-        #     triggerSwitch = False
-        #     isBgCaptured = 0
-        #     print('!!!Reset BackGround!!!')
-        elif k == ord('t') and calibrated is True:
-            """Take off"""
-            print('!!!Take of!!!')
-            if drone is not None and lifted is not True:
-                print('Wait 5 seconds')
-                drone.takeoff()
-                time.sleep(5)
-            lifted = True
-        elif k == ord('l'):
-            """Land"""
-            old_frame_captured = False
-            lifted = False
-            print('!!!Landing!!!')
-            if drone is not None:
-                print('Wait 5 seconds')
-                drone.land()
-                time.sleep(5)
-        elif k == ord('c'):
-            """Control"""
-            if handControl is True:
-                handControl = False
-                old_frame_captured = False
-                print("control switched to keyboard")
-            elif lifted is True:
-                print("control switched to detected hand")
-                handControl = True
-        elif k == ord('z'):
-            """ calibrating Threshold from keyboard """
-            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
-            if tempThreshold >= 0:
-                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
-        elif k == ord('x'):
-            """ calibrating Threshold from keyboard """
-            tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
-            if tempThreshold <= 100:
-                cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+        # # Keyboard OP
+        # k = cv2.waitKey(10)
+        # if k == 27 and lifted is False:  # press ESC to exit
+        #     print('!!!quiting!!!')
+        #     if drone is not None:
+        #         drone.quit()
+        #     break
+        # elif k == 27:
+        #     print('!!!cant quit without landing!!!')
+        # elif k == ord('b'):  # press 'b' to capture the background
+        #     bgModel = cv2.createBackgroundSubtractorMOG2(0, bgSubThreshold)
+        #     isBgCaptured = 1
+        #     print('!!!Background Captured!!!')
+        # # elif k == ord('r'):  # press 'r' to reset the background
+        # #     bgModel = None
+        # #     triggerSwitch = False
+        # #     isBgCaptured = 0
+        # #     print('!!!Reset BackGround!!!')
+        # elif k == ord('t') and calibrated is True:
+        #     """Take off"""
+        #     print('!!!Take of!!!')
+        #     if drone is not None and lifted is not True:
+        #         print('Wait 5 seconds')
+        #         drone.takeoff()
+        #         time.sleep(5)
+        #     lifted = True
+        # elif k == ord('l'):
+        #     """Land"""
+        #     old_frame_captured = False
+        #     lifted = False
+        #     print('!!!Landing!!!')
+        #     if drone is not None:
+        #         print('Wait 5 seconds')
+        #         drone.land()
+        #         time.sleep(5)
+        # elif k == ord('c'):
+        #     """Control"""
+        #     if handControl is True:
+        #         handControl = False
+        #         old_frame_captured = False
+        #         print("control switched to keyboard")
+        #     elif lifted is True:
+        #         print("control switched to detected hand")
+        #         handControl = True
+        # elif k == ord('z'):
+        #     """ calibrating Threshold from keyboard """
+        #     tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
+        #     if tempThreshold >= 0:
+        #         cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+        # elif k == ord('x'):
+        #     """ calibrating Threshold from keyboard """
+        #     tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
+        #     if tempThreshold <= 100:
+        #         cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
 
     # cleanup the camera and close any open windows
     camera.release()
@@ -552,10 +612,13 @@ def main(drone):
         drone.quit()
 
 
+# todo: make a class of constant variables that is being loaded from a config file and then passed to main and to keyBoardThread
 if __name__ == '__main__':
+
     if args["debug"] == "debug":
         main(None)
     else:
         drone = init()
         if drone is not None:
+            # keyBoardThread.start()
             main(drone)
