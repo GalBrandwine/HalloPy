@@ -1,5 +1,5 @@
 # USAGE
-# python Hallo.py --cascade haarcascade_frontalface_default.xml ( make sure both files in same folder)
+# python Hallo.py --cascade haarcascade_frontalface_default.xml ( make sure both files in same folder) --debug debug
 #
 # Press b - to detect hand
 # Press t - to take off
@@ -7,7 +7,6 @@
 # Press l - to land
 # Press esc - to exit (need to land fist)
 
-# import the necessary packages
 import argparse
 from builtins import print
 import tellopy
@@ -61,12 +60,15 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--cascade", required=True,
                 help="path to where the face cascade resides")
 ap.add_argument("-d", "--debug", required=False, default='normal',
-                help="enter: debug, for running as a simulation, witout a Tello drone connected")
+                help="enter: debug, for running as a simulation, without a Tello drone connected")
 args = vars(ap.parse_args())
 
 # load the face detector cascade
 detector = cv2.CascadeClassifier(args["cascade"])
 
+
+def keyboardInputThread():
+    while True:
 
 def printThreshold(thr):
     print("! Changed threshold to " + str(thr))
