@@ -1,5 +1,5 @@
 # USAGE
-# python Hallo.py --cascade haarcascade_frontalface_default.xml ( make sure both files in same folder) --debug debug
+# python Hallo.py --cascade haarcascade_frontalface_default.xml ( make sure both filesd in same folder) --debug debug
 #
 # Press b - to detect hand
 # Press t - to take off
@@ -24,7 +24,7 @@ import time
 
 
 # construct the argument parse and parse the arguments
-from HalloPy._internal import config
+from temp._internal import config_old
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--cascade", required=True,
@@ -574,7 +574,7 @@ def main(conf):
 
 # todo: make a class of constant variables that is being loaded from a config file and then passed to main and to keyBoardThread
 if __name__ == '__main__':
-    configHandler = config.Config()
+    configHandler = config_old.Config()
     if args["debug"] == "debug":
         main(configHandler)
     else:

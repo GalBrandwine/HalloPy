@@ -1,6 +1,7 @@
 """Detector Interface.
 
-This module contains Interface for detectors.
+This module contains Interface for detectors,
+Interface were built using abc class
 
 """
 import abc
