@@ -45,18 +45,22 @@ class Config(object):
         self.halloTitle = halloTitle
         self.cap_region_x_begin = 0.6
         self.cap_region_y_end = 0.6
+
         self.threshold = 50
         self.blurValue = 41
         self.bgSubThreshold = 50
         self.learningRate = 0
         self.bgModel = None
+
         self.face_padding_x = 20
         self.face_padding_y = 60
         self.timeout = time.time() + 5  # 5 seconds from now
         self.calibRadius = 15
         self.tolerance = 10
         self.palmCenterMiddleFingerMaxDistance = 0
+
         self.isBgCaptured = 0
+
         self.triggerSwitch = False
         self.calibrated = False
         self.inHomeCenter = False
