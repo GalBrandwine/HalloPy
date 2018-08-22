@@ -8,9 +8,7 @@ class Controller(extractor.Extractor):
     """
 
     def __init__(self):
-        """Initiate a Controller object.
-
-        """
+        """Initiate a Controller object. """
         extractor.Extractor.__init__(self)
         self.move_up = 0
         # todo: init self with param:    move_left = 0
