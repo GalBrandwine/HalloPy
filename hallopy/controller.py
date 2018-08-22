@@ -8,8 +8,7 @@ class Controller(extractor.Extractor):
     """
 
     def __init__(self):
-        """Initiate a Controller object. """
-        extractor.Extractor.__init__(self)
+        """Init a controller object.  """
         self.move_up = 0
         # todo: init self with param:    move_left = 0
         # todo: init self with param:    move_right = 0
@@ -22,7 +21,7 @@ class Controller(extractor.Extractor):
     # todo: make a unittest for checking inheritence correctness
     def get_up_param(self):
         """Return up parameter (int between 0..100). """
-        if self.move_up < 0:
+        if self.move_up <= 0:
             return 0
         return self.move_up if self.move_up <= 100 else 100
 
