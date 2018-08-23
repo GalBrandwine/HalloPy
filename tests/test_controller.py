@@ -37,6 +37,7 @@ assert get_text('https://example.com/api') == 'Ok'
 class TestController():
     def test_controller_initiation(self):
         """Test if controller params initiated with 0. """
+
         # setup
         controller = Controller()
 

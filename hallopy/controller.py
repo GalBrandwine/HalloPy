@@ -1,7 +1,8 @@
-from HalloPy.hallopy import extractor
+from HalloPy.hallopy.extractor import Extractor
+from HalloPy.hallopy.detector import Detector
 
 
-class Controller(extractor.Extractor):
+class Controller(Extractor):
     """Controller class holds a detector and a extractor.
 
     :param extractor.Extractor: implemented interface
@@ -19,8 +20,8 @@ class Controller(extractor.Extractor):
         self.rotate_right = 0
 
         # Initiate extractor and detector.
-        self.extractor = Extractor()
-        # todo initiate: self.detector = Detector()
+        # todo: self.extractor = Extractor()
+        self.detector = Detector()
 
     def get_up_param(self):
         """Return up parameter (int between 0..100). """

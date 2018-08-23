@@ -38,8 +38,8 @@ class Detector:
     def draw_ROI(self, input_frame):
         """Function for drawing the ROI on input frame"""
 
-        cv2.rectangle(input_frame, (int(self.cap_region_x_begin * self.input_frame.shape[1]) - 20, 0),
-                      (self.input_frame.shape[1], int(self.cap_region_y_end * self.input_frame.shape[0]) + 20),
+        cv2.rectangle(input_frame, (int(self.cap_region_x_begin * input_frame.shape[1]) - 20, 0),
+                      (input_frame.shape[1], int(self.cap_region_y_end * input_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
 
     def detect(self, input_frame):
