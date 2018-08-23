@@ -32,45 +32,59 @@ assert get_text('https://example.com/api') == 'Ok'
 
 # done!
 """
+
+
 class TestController(TestCase):
-    def test_get_up_param(self):
-        """Test if up param up can be negative. """
+    def test_controller_initiation(self):
+        """Test if controller params initiated with 0. """
         # setup
         controller = Controller()
-        when(controller).get_up_param().thenReturn(-1)
-        # todo: I didnt understand mockito well enoufgh, tommorow ill try again
-        # run
-        assert controller.get_up_param() == -1
-
-        # clean up
-        unstub()
-
-    def test_get_down_param(self):
-        """Test if down param initiate with 0 value. """
-        # setup
-        controller = Controller()
-        when(controller).get_down_param().thenReturn(0)
 
         # run
+        assert controller.get_up_param() == 0
         assert controller.get_down_param() == 0
+        assert controller.get_left_param() == 0
+        assert controller.get_right_param() == 0
+        assert controller.get_forward_param() == 0
+        assert controller.get_backward_param() == 0
+        assert controller.get_rotate_left_param() == 0
+        assert controller.get_rotate_right_param() == 0
 
         # clean up
-        unstub()
 
-    def test_get_left_param(self):
-        self.fail()
-
-    def test_get_right_param(self):
-        self.fail()
-
-    def test_get_rotate_left_param(self):
-        self.fail()
-
-    def test_get_rotate_right_param(self):
-        self.fail()
-
-    def test_get_forward_param(self):
-        self.fail()
-
-    def test_get_backward_param(self):
-        self.fail()
+    # def test_get_down_param(self):
+    #     """Test if down param initiate with 0 value. """
+    #     # setup
+    #     controller = Controller()
+    #
+    #     # run
+    #     assert controller.get_down_param() == 0
+    #
+    #     # clean up
+    #
+    # def test_get_left_param(self):
+    #     """Test if left param initiate with 0 value. """
+    #     # setup
+    #     controller = Controller()
+    #
+    #     # run
+    #     assert controller.get_left_param() == 0
+    #
+    # def test_get_right_param(self):
+    #     self.fail()
+    #
+    # def test_get_rotate_left_param(self):
+    #     """Test if rotate_left param initiate with 0 value. """
+    #     self.fail()
+    #
+    # def test_get_rotate_right_param(self):
+    #     """Test if rotate_right param initiate with 0 value. """
+    #     self.fail()
+    #
+    # def test_get_forward_param(self):
+    #     """Test if forward param initiate with 0 value. """
+    #     self.fail()
+    #
+    # def test_get_backward_param(self):
+    #     """Test if backward param initiate with 0 value. """
+    #     self.fail()
