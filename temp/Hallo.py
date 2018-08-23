@@ -298,8 +298,10 @@ def main(conf):
         for (x, y, w, h) in faces:
             img[y - face_padding_y:y + h + face_padding_y, x - face_padding_x:x + w + face_padding_x, :] = 0
 
+        # feature moved to new HalloPy architecture
         cv2.rectangle(frame, (int(cap_region_x_begin * frame.shape[1]) - 20, 0),
                       (frame.shape[1], int(cap_region_y_end * frame.shape[0]) + 20), (255, 0, 0), 2)
+
         cv2.imshow(conf.halloTitle, frame)
 
         #  Main operation

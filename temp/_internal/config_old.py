@@ -54,6 +54,7 @@ class Config(object):
 
         self.face_padding_x = 20
         self.face_padding_y = 60
+
         self.timeout = time.time() + 5  # 5 seconds from now
         self.calibRadius = 15
         self.tolerance = 10

@@ -18,6 +18,10 @@ class Controller(extractor.Extractor):
         self.rotate_left = 0
         self.rotate_right = 0
 
+        # Initiate extractor and detector.
+        self.extractor = Extractor()
+        # todo initiate: self.detector = Detector()
+
     def get_up_param(self):
         """Return up parameter (int between 0..100). """
         if self.move_up <= 0:
