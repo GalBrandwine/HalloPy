@@ -17,10 +17,10 @@ class Detector:
         self.cap_region_y_end = 0.6
 
         self.threshold = 50
-        self.blurValue = 41
-        self.bgSubThreshold = 50
-        self.learningRate = 0
-        self.bgModel = None
+        self.blur_Value = 41
+        self.bg_Sub_Threshold = 50
+        self.learning_Rate = 0
+        self.bg_model = None
 
         self.face_padding_x = 20
         self.face_padding_y = 60
@@ -34,7 +34,6 @@ class Detector:
 
     def set_frame(self, input_frame):
         """Function for getting frame from user.  """
-
         self.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
         self.input_frame = cv2.flip(input_frame, 1)
         self.out_put_frame = self.input_frame.copy()
@@ -77,7 +76,11 @@ class Detector:
         Removing background help's find hand.
         """
 
-        fgmask = self.bgModel.apply(detected, learningRate=self.learningRate)
+        # todo: bg_model bgModel initation to controller key_board_input thread.
+        if self.bg_model is None:
+            self.bg_model = cv2.createBackgroundSubtractorMOG2(0, self.bg_Sub_Threshold)
+
+        fgmask = self.bg_model.apply(detected, learningRate=self.learning_Rate)
         kernel = np.ones((3, 3), np.uint8)
         fgmask = cv2.erode(fgmask, kernel, iterations=1)
         res = cv2.bitwise_and(detected, detected, mask=fgmask)
@@ -85,7 +88,6 @@ class Detector:
                         int(self.cap_region_x_begin * self.detected.shape[1]):self.detected.shape[1]]  # clip the ROI
 
         # todo: call find_largest_contour
-
 
     def detect(self, input_frame):
         pass
