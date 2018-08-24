@@ -4,8 +4,8 @@ import imutils
 import cv2
 
 
-class Image_Test_Tool:
-    """This class contain tools for helping test functionality"""
+class ImageTestTool:
+    """This class contain tools that helps test functionality"""
 
     @staticmethod
     def compare_imaged(img1, img2):
