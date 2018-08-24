@@ -4,6 +4,7 @@ This module contains Detector class and all its relevant functionality,
 
 """
 import cv2
+from HalloPy.util import files
 
 
 class Detector:
@@ -24,6 +25,7 @@ class Detector:
         self.face_padding_y = 60
 
         self.input_frame = None
+        self.out_put_frame = None
         self.detected = None
         self.gray = None
         self.face_detector = None
@@ -34,17 +36,15 @@ class Detector:
 
         self.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
         self.input_frame = cv2.flip(input_frame, 1)
-        self.draw_ROI(self.input_frame)
-        self.cover_faces(self.input_frame)
-        self.detect(self.input_frame)
-
+        self.out_put_frame = self.input_frame.copy()
+        self.draw_ROI(self.out_put_frame)
 
     def draw_ROI(self, input_frame):
         """Function for drawing the ROI on input frame"""
-
         cv2.rectangle(input_frame, (int(self.cap_region_x_begin * input_frame.shape[1]) - 20, 0),
                       (input_frame.shape[1], int(self.cap_region_y_end * input_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
+        self.cover_faces(self.out_put_frame)
 
     def cover_faces(self, input_frame):
         """Function to draw black recs over detected faces.
@@ -53,19 +53,22 @@ class Detector:
         """
 
         # Preparation
-        self.detected = input_frame
-        self.gray = cv2.cvtColor(input_frame, cv2.COLOR_BGR2GRAY)
+        self.detected = input_frame.copy()
+        self.gray = cv2.cvtColor(self.detected, cv2.COLOR_BGR2GRAY)
 
         if self.face_detector is None:
             # Load the face detector cascade.
             self.face_detector = cv2.CascadeClassifier(
-                '/home/gal/PycharmProjects/droneTest1/HalloPy/hallopy/config/haarcascade_frontalface_default.xml')
+                files.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
         self.faces = self.face_detector.detectMultiScale(self.gray, 1.3, 5)
 
         # Black rectangle over faces to remove skin noises.
         for (x, y, w, h) in self.faces:
             self.detected[y - self.face_padding_y:y + h + self.face_padding_y,
             x - self.face_padding_x:x + w + self.face_padding_x, :] = 0
+
+        # Call detect for detecting
+        self.detect(self.out_put_frame)
 
     def detect(self, input_frame):
         pass

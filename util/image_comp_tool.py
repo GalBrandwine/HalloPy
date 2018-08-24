@@ -1,7 +1,8 @@
 # import the necessary packages
 from skimage.measure import compare_ssim
-import imutils
 import cv2
+
+from util import files
 
 
 class ImageTestTool:
@@ -53,3 +54,20 @@ class ImageTestTool:
         # cv2.imshow("Diff", diff)
         # cv2.imshow("Thresh", thresh)
         # cv2.waitKey(0)
+
+    @staticmethod
+    def detect_faces(img):
+        """Function for detecting faces.
+
+        :returns faces: array with detected faces coordination's.
+        """
+
+        face_detector = cv2.CascadeClassifier(files.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        return face_detector.detectMultiScale(gray, 1.3, 5)
+
+    @staticmethod
+    def draw_black_recs(img, obj_coord):
+        # Black rectangle over faces to remove skin noises.
+        for (x, y, w, h) in obj_coord:
+            img[y:y + h, x:x + w, :] = 0
