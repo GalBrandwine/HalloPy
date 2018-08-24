@@ -321,7 +321,7 @@ def main(conf):
             length = len(contours)
             maxArea = -1
 
-            """ Copy img, before drawing on it, so OpticalFlow won't be affected """
+            # Copy img, before drawing on it, so OpticalFlow won't be affected.
             extractedMovement = img.copy()
             frameCenter = drawMovementsAxes(img)
 

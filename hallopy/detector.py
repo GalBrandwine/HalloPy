@@ -4,6 +4,7 @@ This module contains Detector class and all its relevant functionality,
 
 """
 import cv2
+import numpy as np
 from HalloPy.util import files
 
 
@@ -39,21 +40,21 @@ class Detector:
         self.out_put_frame = self.input_frame.copy()
         self.draw_ROI(self.out_put_frame)
 
-    def draw_ROI(self, input_frame):
+    def draw_ROI(self, out_put_frame):
         """Function for drawing the ROI on input frame"""
-        cv2.rectangle(input_frame, (int(self.cap_region_x_begin * input_frame.shape[1]) - 20, 0),
-                      (input_frame.shape[1], int(self.cap_region_y_end * input_frame.shape[0]) + 20),
+        cv2.rectangle(out_put_frame, (int(self.cap_region_x_begin * out_put_frame.shape[1]) - 20, 0),
+                      (out_put_frame.shape[1], int(self.cap_region_y_end * out_put_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
         self.cover_faces(self.out_put_frame)
 
-    def cover_faces(self, input_frame):
+    def cover_faces(self, out_put_frame):
         """Function to draw black recs over detected faces.
 
         This function remove eny 'noise' and help detector detecting palm.
         """
 
         # Preparation
-        self.detected = input_frame.copy()
+        self.detected = out_put_frame.copy()
         self.gray = cv2.cvtColor(self.detected, cv2.COLOR_BGR2GRAY)
 
         if self.face_detector is None:
@@ -67,8 +68,24 @@ class Detector:
             self.detected[y - self.face_padding_y:y + h + self.face_padding_y,
             x - self.face_padding_x:x + w + self.face_padding_x, :] = 0
 
-        # Call detect for detecting
-        self.detect(self.out_put_frame)
+        # Remove back-ground
+        self.remove_back_ground(self.detected)
+
+    def remove_back_ground(self, detected):
+        """Function to remove back-ground from detected.
+
+        Removing background help's find hand.
+        """
+
+        fgmask = self.bgModel.apply(detected, learningRate=self.learningRate)
+        kernel = np.ones((3, 3), np.uint8)
+        fgmask = cv2.erode(fgmask, kernel, iterations=1)
+        res = cv2.bitwise_and(detected, detected, mask=fgmask)
+        self.detected = res[0:int(self.cap_region_y_end * self.detected.shape[0]),
+                        int(self.cap_region_x_begin * self.detected.shape[1]):self.detected.shape[1]]  # clip the ROI
+
+        # todo: call find_largest_contour
+
 
     def detect(self, input_frame):
         pass
