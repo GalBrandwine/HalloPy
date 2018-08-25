@@ -28,9 +28,12 @@ class Detector:
         self.input_frame = None
         self.out_put_frame = None
         self.detected = None
+        self.detected_gray = None
         self.gray = None
         self.face_detector = None
         self.faces = None
+
+        self.max_area_contour = None
 
     def set_frame(self, input_frame):
         """Function for getting frame from user.  """
@@ -87,46 +90,39 @@ class Detector:
         self.detected = res[0:int(self.cap_region_y_end * self.detected.shape[0]),
                         int(self.cap_region_x_begin * self.detected.shape[1]):self.detected.shape[1]]  # clip the ROI
 
-        # todo: call find_largest_contour
+        self.find_largest_contour(self.detected)
 
-    def detect(self, input_frame):
-        pass
-        # raise NotImplementedError   # equal to '#todo:'
+    def find_largest_contour(self, detected):
+        """Function for finding largest contour in contours.
 
-        # remove noise
-        # todo: self.hide_faces(self.detected), make hide_faces function
+        And draw it on self.detected.
+        """
 
-    # @abc.abstractmethod(classmethod)
-    # def _drawMovementsAxes(self, inputIFrame):
-    #     """Private method, Draws movements Axes on frame.
-    #
-    #     Args:
-    #         inputframe (openCV object): recieved frame from camera.
-    #
-    #     """
-    #     pass
-    #
-    # @abc.abstractmethod(classmethod)
-    # def _removeBG(self, frame):
-    #     """Private method, Removes back ground.
-    #
-    #     Returns:
-    #         The frame, with subtracted background.
-    #
-    #     """
-    #     pass
-    #
-    # @abc.abstractmethod(classmethod)
-    # def _simpleAngleCalculator(self, startPoint, endPoint, farPoint):
-    #     """Private method, calculate angle of 3 given points.
-    #
-    #     Args:
-    #         startPoint (Tuple):
-    #         endPoint(Tuple):
-    #         farPoint(Tuples):
-    #
-    #     Returns:
-    #         angle (float): calculated angle in degrees.
-    #
-    #     """
-    #     pass
+        # Preparation
+        self.detected_gray = cv2.cvtColor(detected, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(self.detected_gray, (self.blur_Value, self.blur_Value), 0)
+        _, thresh = cv2.threshold(blur, self.threshold, 255, cv2.THRESH_BINARY)
+
+        # Get the contours.
+        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # Find the biggest area
+        self.max_area_contour = max(contours, key=cv2.contourArea)
+        cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
+        # cv2.imshow('contours', detected)
+        # cv2.waitKey()
+        # Copy img, before drawing on it, so OpticalFlow won't be affected.
+        # extractedMovement = img.copy()
+        # frameCenter = drawMovementsAxes(img)
+
+        # if length > 0:
+        #     for i in range(length):  # find the biggest contour (according to area)
+        #         temp = contours[i]
+        #         area = cv2.contourArea(temp)
+        #         if area > maxArea + 30:
+        #             maxArea = area
+        #             ci = i
+        #     try:
+        #         res = contours[ci]
+        #     except Exception as ex:  # sometimes ci is out-of range
+        #         # print(ex)
+        #         pass

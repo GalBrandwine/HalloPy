@@ -338,6 +338,7 @@ def main(conf):
                     # print(ex)
                     pass
 
+                # todo: belong to extractor
                 (cX, cY) = handCenterOfMass(res)  # palm center of mass
 
                 if conf.handControl is False:  # draw palm in red
