@@ -105,11 +105,17 @@ class Detector:
 
         # Get the contours.
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        # Find the biggest area
+        # Find the biggest area.
         self.max_area_contour = max(contours, key=cv2.contourArea)
-        cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
-        # cv2.imshow('contours', detected)
-        # cv2.waitKey()
+
+        # todo: draw contour in controller, based on keyboard input.
+        # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
+
+    """ At this point, 'self' has: 
+        1. input_frame: a untouched inputed frame.
+        2. detected: an image extracted from 'input_frame's ROI, and it's background subtrackted.
+        3. max_area_contour: array of points, our palm contour"""
+
         # Copy img, before drawing on it, so OpticalFlow won't be affected.
         # extractedMovement = img.copy()
         # frameCenter = drawMovementsAxes(img)
