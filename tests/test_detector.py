@@ -8,12 +8,14 @@ from HalloPy.util import files
 
 
 class TestDetector:
+    """Unittests for a Detector object.  """
+
     def test_set_frame(self):
         """Test if set_frame perform prepossessing correctly.  """
         # setup
         test_path = files.get_full_path('docs/face_and_hand.jpg')
         test_image = cv2.imread(test_path)
-        # Because image loaded from local, and not received from cam, a flip is needed.
+        # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         expected = test_image.copy()
         expected = cv2.bilateralFilter(expected, 5, 50, 100)  # smoothing filter
@@ -34,7 +36,7 @@ class TestDetector:
         # setup
         test_path = files.get_full_path('docs/testing_img.jpg')
         test_image = cv2.imread(test_path)
-        # Because image loaded from local, and not received from cam, a flip is needed.
+        # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         expected = test_image.copy()
         expected = cv2.bilateralFilter(expected, 5, 50, 100)  # smoothing filter
@@ -56,7 +58,7 @@ class TestDetector:
         # setup
         test_path = files.get_full_path('docs/hand_contour.jpg')
         test_image = cv2.imread(test_path)
-        # Because image loaded from local, and not received from cam, a flip is needed.
+        # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         test_image = cv2.bitwise_not(test_image)
         # Get the contours.
@@ -74,3 +76,22 @@ class TestDetector:
         # run
         result_area = cv2.contourArea(detector.max_area_contour)
         assert result_area == expected_area
+
+    def test_draw_axes(self):
+        """Test if detected_out_put_center calculated properly.  """
+        # setup
+        test_path = files.get_full_path('docs/hand_contour.jpg')
+        test_image = cv2.imread(test_path)
+        # Because image loaded from local, and not received from web-cam, a flip is needed.
+        test_image = cv2.flip(test_image, 1)
+        expected = test_image.copy()
+        roi = {'cap_region_y_end': 0.6, 'cap_region_x_begin': 0.6}
+        expected = ImageTestTool.clip_roi(expected, roi)
+        # Create detector
+        detector = Detector()
+        expected_detected_out_put_center = (
+        int(expected.shape[1] / 2), int(expected.shape[0] / 2) + detector.horiz_axe_offset)
+
+        # run
+        detector.set_frame(test_image)
+        assert expected_detected_out_put_center == detector.detected_out_put_center

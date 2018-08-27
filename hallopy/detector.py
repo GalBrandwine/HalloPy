@@ -6,6 +6,17 @@ This module contains Detector class and all its relevant functionality,
 import cv2
 import numpy as np
 from HalloPy.util import files
+import logging
+
+# create logger
+detector_logger = logging.getLogger('detector')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+# add the handlers to logger
+detector_logger.addHandler(ch)
 
 
 class Detector:
@@ -13,6 +24,7 @@ class Detector:
 
     def __init__(self):
         """Init inner algorithm params.  """
+        self.logger = logging.getLogger('detector')
         self.cap_region_x_begin = 0.6
         self.cap_region_y_end = 0.6
 
@@ -31,6 +43,7 @@ class Detector:
         self.detected_gray = None
         self.detected_out_put = None
         self.detected_out_put_center = None
+        self.horiz_axe_offset = 60
 
         self.gray = None
         self.face_detector = None
@@ -50,6 +63,7 @@ class Detector:
         cv2.rectangle(out_put_frame, (int(self.cap_region_x_begin * out_put_frame.shape[1]) - 20, 0),
                       (out_put_frame.shape[1], int(self.cap_region_y_end * out_put_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
+
         self.cover_faces(self.out_put_frame)
 
     def cover_faces(self, out_put_frame):
@@ -73,7 +87,6 @@ class Detector:
             self.detected[y - self.face_padding_y:y + h + self.face_padding_y,
             x - self.face_padding_x:x + w + self.face_padding_x, :] = 0
 
-        # Remove back-ground
         self.remove_back_ground(self.detected)
 
     def remove_back_ground(self, detected):
@@ -98,7 +111,8 @@ class Detector:
     def find_largest_contour(self, detected):
         """Function for finding largest contour in contours.
 
-        todo: remove 'draw it on self.detected' to controller input_thread.
+        todo: remove 'draw it on self.detected' to controller input_thread:
+        # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
         """
 
         # Preparation
@@ -110,11 +124,10 @@ class Detector:
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         # Find the biggest area.
         self.max_area_contour = max(contours, key=cv2.contourArea)
-
-        # todo: draw contour in controller, based on keyboard input.
-        # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
-
-        self.detected_out_put_center = self.draw_axes(self.detected)
+        try:
+            self.detected_out_put_center = self.draw_axes(self.detected)
+        except AttributeError:
+            self.logger.error("self.detected not initiated!")
 
     """ At this point (in top-down data flow), 'self' has: 
         1. input_frame: a untouched inserted frame.
@@ -128,16 +141,22 @@ class Detector:
         """
 
         # Preparation
-        detected_out_put_center = (int(detected.shape[0] / 2) - 20, int(detected.shape[1] / 2) + 60)
-        axe_X = [(0, int(detected.shape[1] / 2) + 60),
-                 (detected.shape[0], int(detected.shape[1] / 2) + 60)]
-        axe_Y = [(int(detected.shape[0] / 2) - 20, 0),
-                 (int(detected.shape[0] / 2) - 20, detected.shape[1] + 40)]
         self.detected_out_put = detected.copy()
+
+        # np.array are opposite than cv2 row/cols indexing.
+        detected_out_put_center = (
+        int(self.detected_out_put.shape[1] / 2), int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+        horiz_axe_start = (0, int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+        horiz_axe_end = (
+        self.detected_out_put.shape[1], int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+
+        vertic_y_start = (int(self.detected_out_put.shape[1] / 2), 0)
+        vertic_y_end = (int(self.detected_out_put.shape[1] / 2), self.detected_out_put.shape[0])
+
         # draw movement axe X
-        cv2.line(self.detected_out_put, axe_X[0], axe_X[1]
+        cv2.line(self.detected_out_put, horiz_axe_start, horiz_axe_end
                  , (0, 0, 255), thickness=3)
         # draw movement axe Y
-        cv2.line(self.detected_out_put, axe_Y[0], axe_Y[1]
+        cv2.line(self.detected_out_put, vertic_y_start, vertic_y_end
                  , (0, 0, 255), thickness=3)
         return detected_out_put_center

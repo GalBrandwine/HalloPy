@@ -71,3 +71,9 @@ class ImageTestTool:
         # Black rectangle over faces to remove skin noises.
         for (x, y, w, h) in obj_coord:
             img[y:y + h, x:x + w, :] = 0
+
+    @staticmethod
+    def clip_roi(img, roi):
+        clipped = img[0:int(roi['cap_region_y_end'] * img.shape[0]),
+                  int(roi['cap_region_x_begin'] * img.shape[1]):img.shape[1]]  # clip the ROI
+        return clipped
