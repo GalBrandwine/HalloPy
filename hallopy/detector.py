@@ -29,6 +29,9 @@ class Detector:
         self.out_put_frame = None
         self.detected = None
         self.detected_gray = None
+        self.detected_out_put = None
+        self.detected_out_put_center = None
+
         self.gray = None
         self.face_detector = None
         self.faces = None
@@ -95,7 +98,7 @@ class Detector:
     def find_largest_contour(self, detected):
         """Function for finding largest contour in contours.
 
-        And draw it on self.detected.
+        todo: remove 'draw it on self.detected' to controller input_thread.
         """
 
         # Preparation
@@ -111,24 +114,30 @@ class Detector:
         # todo: draw contour in controller, based on keyboard input.
         # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
 
-    """ At this point, 'self' has: 
-        1. input_frame: a untouched inputed frame.
+        self.detected_out_put_center = self.draw_axes(self.detected)
+
+    """ At this point (in top-down data flow), 'self' has: 
+        1. input_frame: a untouched inserted frame.
         2. detected: an image extracted from 'input_frame's ROI, and it's background subtrackted.
         3. max_area_contour: array of points, our palm contour"""
 
-        # Copy img, before drawing on it, so OpticalFlow won't be affected.
-        # extractedMovement = img.copy()
-        # frameCenter = drawMovementsAxes(img)
+    def draw_axes(self, detected):
+        """Function for drawing axes on detected_out_put.
 
-        # if length > 0:
-        #     for i in range(length):  # find the biggest contour (according to area)
-        #         temp = contours[i]
-        #         area = cv2.contourArea(temp)
-        #         if area > maxArea + 30:
-        #             maxArea = area
-        #             ci = i
-        #     try:
-        #         res = contours[ci]
-        #     except Exception as ex:  # sometimes ci is out-of range
-        #         # print(ex)
-        #         pass
+        Returns: detected_out_put_center (point).
+        """
+
+        # Preparation
+        detected_out_put_center = (int(detected.shape[0] / 2) - 20, int(detected.shape[1] / 2) + 60)
+        axe_X = [(0, int(detected.shape[1] / 2) + 60),
+                 (detected.shape[0], int(detected.shape[1] / 2) + 60)]
+        axe_Y = [(int(detected.shape[0] / 2) - 20, 0),
+                 (int(detected.shape[0] / 2) - 20, detected.shape[1] + 40)]
+        self.detected_out_put = detected.copy()
+        # draw movement axe X
+        cv2.line(self.detected_out_put, axe_X[0], axe_X[1]
+                 , (0, 0, 255), thickness=3)
+        # draw movement axe Y
+        cv2.line(self.detected_out_put, axe_Y[0], axe_Y[1]
+                 , (0, 0, 255), thickness=3)
+        return detected_out_put_center
