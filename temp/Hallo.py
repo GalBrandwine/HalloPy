@@ -575,7 +575,7 @@ def main(conf):
         conf.drone.quit()
 
 
-# todo: make a class of constant variables that is being loaded from a config file and then passed to main and to keyBoardThread
+# todo: make a class of constant variables that is being loaded from a config class and then passed to main and to keyBoardThread
 if __name__ == '__main__':
     configHandler = config_old.Config()
     if args["debug"] == "debug":

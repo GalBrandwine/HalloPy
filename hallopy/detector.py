@@ -95,7 +95,7 @@ class Detector:
         Removing background help's find hand.
         """
 
-        # todo: bg_model bgModel initation to controller key_board_input thread.
+        # todo: bg_model bgModel initation to controller's input_from_keyboard_thread.
         if self.bg_model is None:
             self.bg_model = cv2.createBackgroundSubtractorMOG2(0, self.bg_Sub_Threshold)
 
@@ -111,7 +111,7 @@ class Detector:
     def find_largest_contour(self, detected):
         """Function for finding largest contour in contours.
 
-        todo: remove 'draw it on self.detected' to controller input_thread:
+        todo: remove 'draw it on self.detected' to controller's input_from_keyboard_thread:
         # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
         """
 
@@ -129,15 +129,10 @@ class Detector:
         except AttributeError:
             self.logger.error("self.detected not initiated!")
 
-    """ At this point (in top-down data flow), 'self' has: 
-        1. input_frame: a untouched inserted frame.
-        2. detected: an image extracted from 'input_frame's ROI, and it's background subtrackted.
-        3. max_area_contour: array of points, our palm contour"""
-
     def draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
 
-        Returns: detected_out_put_center (point).
+        Return detected_out_put_center (point): the center coord' of detected_out_put.
         """
 
         # Preparation
@@ -145,10 +140,10 @@ class Detector:
 
         # np.array are opposite than cv2 row/cols indexing.
         detected_out_put_center = (
-        int(self.detected_out_put.shape[1] / 2), int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+            int(self.detected_out_put.shape[1] / 2), int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
         horiz_axe_start = (0, int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
         horiz_axe_end = (
-        self.detected_out_put.shape[1], int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+            self.detected_out_put.shape[1], int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
 
         vertic_y_start = (int(self.detected_out_put.shape[1] / 2), 0)
         vertic_y_end = (int(self.detected_out_put.shape[1] / 2), self.detected_out_put.shape[0])
@@ -160,3 +155,11 @@ class Detector:
         cv2.line(self.detected_out_put, vertic_y_start, vertic_y_end
                  , (0, 0, 255), thickness=3)
         return detected_out_put_center
+
+    """ At this point (in top-down data flow), 'self' has: 
+        1. input_frame: a untouched inserted frame.
+        2. detected: an image extracted from 'input_frame's ROI, and it's background subtrackted.
+        3. max_area_contour: array of points, our palm contour.
+        4. detected_out_put_center, which will help extractor know distance from center of ROI"""
+
+    # todo: create a function thatembed detected_out_put_frame in out_put_frame.
