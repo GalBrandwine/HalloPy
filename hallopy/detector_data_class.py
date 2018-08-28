@@ -1,33 +1,11 @@
-"""Extractor class.
-
-This module contains Extractor class and all its relevant functionality,
-
-"""
-import cv2
-import numpy as np
+"""This is detector objects data_class.  """
 from attr import dataclass
-
-from HalloPy.util import files
-import logging
-
-# create logger
-detector_logger = logging.getLogger('extractor')
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-# create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-# add the handlers to logger
-detector_logger.addHandler(ch)
 
 
 @dataclass
-class Extractor:
-    """Detector class.  """
-
+class DetectorDataClass:
     def __init__(self):
         """Init inner algorithm params.  """
-        self.logger = logging.getLogger('extractor')
         self.cap_region_x_begin = 0.6
         self.cap_region_y_end = 0.6
 

@@ -1,11 +1,11 @@
-from HalloPy.hallopy.extractor import Extractor
+from HalloPy.hallopy.icontroller import Icontroller
 from HalloPy.hallopy.detector import Detector
 
 
-class Controller(Extractor):
+class Controller(Icontroller):
     """Controller class holds a detector and a extractor.
 
-    :param extractor.Extractor: implemented interface
+    :param icontroller.Icontroller: implemented interface
     """
 
     def __init__(self):
