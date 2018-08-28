@@ -9,8 +9,6 @@ from HalloPy.util import files
 import logging
 
 # create logger
-from hallopy.detector_data_class import DetectorDataClass
-
 detector_logger = logging.getLogger('detector')
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
@@ -27,14 +25,38 @@ class Detector:
     def __init__(self):
         """Init inner algorithm params.  """
         self.logger = logging.getLogger('detector')
-        self.data = DetectorDataClass()
+        self.cap_region_x_begin = 0.6
+        self.cap_region_y_end = 0.6
+
+        self.threshold = 50
+        self.blur_Value = 41
+        self.bg_Sub_Threshold = 50
+        self.learning_Rate = 0
+        self.bg_model = None
+
+        self.face_padding_x = 20
+        self.face_padding_y = 60
+
+        self.input_frame = None
+        self.out_put_frame = None
+        self.detected = None
+        self.detected_gray = None
+        self.detected_out_put = None
+        self.detected_out_put_center = None
+        self.horiz_axe_offset = 60
+
+        self.gray = None
+        self.face_detector = None
+        self.faces = None
+
+        self.max_area_contour = None
 
     def set_frame(self, input_frame):
         """Function for getting frame from user.  """
-        self.data.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
-        self.data.input_frame = cv2.flip(input_frame, 1)
-        self.data.out_put_frame = self.data.input_frame.copy()
-        self.draw_ROI(self.data.out_put_frame)
+        self.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
+        self.input_frame = cv2.flip(input_frame, 1)
+        self.out_put_frame = self.input_frame.copy()
+        self.draw_ROI(self.out_put_frame)
 
     def draw_ROI(self, out_put_frame):
         """Function for drawing the ROI on input frame"""
@@ -44,6 +66,7 @@ class Detector:
 
         self.cover_faces(self.out_put_frame)
 
+    # todo: move to FaceProcessor
     def cover_faces(self, out_put_frame):
         """Function to draw black recs over detected faces.
 
@@ -67,6 +90,7 @@ class Detector:
 
         self.remove_back_ground(self.detected)
 
+    # todo: move to FaceProcessor
     def remove_back_ground(self, detected):
         """Function to remove back-ground from detected.
 
@@ -86,6 +110,7 @@ class Detector:
 
         self.find_largest_contour(self.detected)
 
+    # todo: move to detector
     def find_largest_contour(self, detected):
         """Function for finding largest contour in contours.
 
@@ -107,6 +132,7 @@ class Detector:
         except AttributeError:
             self.logger.error("self.detected not initiated!")
 
+    # todo: keep in controller
     def draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
 
@@ -140,4 +166,4 @@ class Detector:
         3. max_area_contour: array of points, our palm contour.
         4. detected_out_put_center, which will help extractor know distance from center of ROI"""
 
-    # todo: create a function thatembed detected_out_put_frame in out_put_frame.
+    # todo: create a function that embed detected_out_put_frame in out_put_frame.
