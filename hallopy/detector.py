@@ -25,8 +25,8 @@ class Detector:
     def __init__(self):
         """Init inner algorithm params.  """
         self.logger = logging.getLogger('detector')
-        self.cap_region_x_begin = 0.6
-        self.cap_region_y_end = 0.6
+        # self.cap_region_x_begin = 0.6
+        # self.cap_region_y_end = 0.6
 
         self.threshold = 50
         self.blur_Value = 41
@@ -37,7 +37,7 @@ class Detector:
         self.face_padding_x = 20
         self.face_padding_y = 60
 
-        self.input_frame = None
+        # self.input_frame = None
         self.out_put_frame = None
         self.detected = None
         self.detected_gray = None
@@ -51,46 +51,46 @@ class Detector:
 
         self.max_area_contour = None
 
-    def set_frame(self, input_frame):
-        """Function for getting frame from user.  """
-        self.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
-        self.input_frame = cv2.flip(input_frame, 1)
-        self.out_put_frame = self.input_frame.copy()
-        self.draw_ROI(self.out_put_frame)
+    # def set_frame(self, input_frame):
+    #     """Function for getting frame from user.  """
+    #     self.input_frame = cv2.bilateralFilter(input_frame, 5, 50, 100)  # smoothing filter
+    #     self.input_frame = cv2.flip(input_frame, 1)
+    #     self.out_put_frame = self.input_frame.copy()
+    #     self.draw_ROI(self.out_put_frame)
+    #
+    # def draw_ROI(self, out_put_frame):
+    #     """Function for drawing the ROI on input frame"""
+    #     cv2.rectangle(out_put_frame, (int(self.cap_region_x_begin * out_put_frame.shape[1]) - 20, 0),
+    #                   (out_put_frame.shape[1], int(self.cap_region_y_end * out_put_frame.shape[0]) + 20),
+    #                   (255, 0, 0), 2)
 
-    def draw_ROI(self, out_put_frame):
-        """Function for drawing the ROI on input frame"""
-        cv2.rectangle(out_put_frame, (int(self.cap_region_x_begin * out_put_frame.shape[1]) - 20, 0),
-                      (out_put_frame.shape[1], int(self.cap_region_y_end * out_put_frame.shape[0]) + 20),
-                      (255, 0, 0), 2)
+    #     self.cover_faces(self.out_put_frame)
+    #
 
-        self.cover_faces(self.out_put_frame)
+    # def cover_faces(self, out_put_frame):
+    #     """Function to draw black recs over detected faces.
+    #
+    #     This function remove eny 'noise' and help detector detecting palm.
+    #     """
+    #
+    #     # Preparation
+    #     self.detected = out_put_frame.copy()
+    #     self.gray = cv2.cvtColor(self.detected, cv2.COLOR_BGR2GRAY)
+    #
+    #     if self.face_detector is None:
+    #         # Load the face detector cascade.
+    #         self.face_detector = cv2.CascadeClassifier(
+    #             files.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
+    #     self.faces = self.face_detector.detectMultiScale(self.gray, 1.3, 5)
+    #
+    #     # Black rectangle over faces to remove skin noises.
+    #     for (x, y, w, h) in self.faces:
+    #         self.detected[y - self.face_padding_y:y + h + self.face_padding_y,
+    #         x - self.face_padding_x:x + w + self.face_padding_x, :] = 0
 
-    # todo: move to FaceProcessor
-    def cover_faces(self, out_put_frame):
-        """Function to draw black recs over detected faces.
+    # self.remove_back_ground(self.detected)
 
-        This function remove eny 'noise' and help detector detecting palm.
-        """
-
-        # Preparation
-        self.detected = out_put_frame.copy()
-        self.gray = cv2.cvtColor(self.detected, cv2.COLOR_BGR2GRAY)
-
-        if self.face_detector is None:
-            # Load the face detector cascade.
-            self.face_detector = cv2.CascadeClassifier(
-                files.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
-        self.faces = self.face_detector.detectMultiScale(self.gray, 1.3, 5)
-
-        # Black rectangle over faces to remove skin noises.
-        for (x, y, w, h) in self.faces:
-            self.detected[y - self.face_padding_y:y + h + self.face_padding_y,
-            x - self.face_padding_x:x + w + self.face_padding_x, :] = 0
-
-        self.remove_back_ground(self.detected)
-
-    # todo: move to FaceProcessor
+    # todo: move to detector
     def remove_back_ground(self, detected):
         """Function to remove back-ground from detected.
 
@@ -132,7 +132,7 @@ class Detector:
         except AttributeError:
             self.logger.error("self.detected not initiated!")
 
-    # todo: keep in controller
+    # todo: move to detector
     def draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
 
