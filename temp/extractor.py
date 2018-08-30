@@ -3,11 +3,8 @@
 This module contains Extractor class and all its relevant functionality,
 
 """
-import cv2
-import numpy as np
 from attr import dataclass
 
-from HalloPy.util import files
 import logging
 
 # create logger

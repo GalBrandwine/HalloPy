@@ -2,7 +2,7 @@
 from skimage.measure import compare_ssim
 import cv2
 
-from util import files
+from hallopy import utils
 
 
 class ImageTestTool:
@@ -62,7 +62,7 @@ class ImageTestTool:
         :returns faces: array with detected faces coordination's.
         """
 
-        face_detector = cv2.CascadeClassifier(files.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
+        face_detector = cv2.CascadeClassifier(utils.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         return face_detector.detectMultiScale(gray, 1.3, 5)
 

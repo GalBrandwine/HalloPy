@@ -1,10 +1,7 @@
-import os
-
 import cv2
-import numpy as np
 from HalloPy.hallopy.detector import Detector
 from HalloPy.util.image_comp_tool import ImageTestTool
-from HalloPy.util import files
+from hallopy import utils
 
 
 class TestDetector:
@@ -14,7 +11,7 @@ class TestDetector:
         """Test if cover_faces cover detected faces with black rec's correctly.  """
 
         # setup
-        test_path = files.get_full_path('docs/testing_img.jpg')
+        test_path = utils.get_full_path('docs/testing_img.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -36,7 +33,7 @@ class TestDetector:
     def test_find_largest_contours(self):
         """Test if largest contours is found.  """
         # setup
-        test_path = files.get_full_path('docs/hand_contour.jpg')
+        test_path = utils.get_full_path('docs/hand_contour.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -60,7 +57,7 @@ class TestDetector:
     def test_draw_axes(self):
         """Test if detected_out_put_center calculated properly.  """
         # setup
-        test_path = files.get_full_path('docs/hand_contour.jpg')
+        test_path = utils.get_full_path('docs/hand_contour.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)

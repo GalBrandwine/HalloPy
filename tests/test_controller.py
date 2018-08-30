@@ -34,7 +34,7 @@ assert get_text('https://example.com/api') == 'Ok'
 """
 
 
-class TestController():
+class TestController:
     def test_controller_initiation(self):
         """Test if controller params initiated with 0. """
 
@@ -50,3 +50,4 @@ class TestController():
         assert controller.get_backward_param() == 0
         assert controller.get_rotate_left_param() == 0
         assert controller.get_rotate_right_param() == 0
+

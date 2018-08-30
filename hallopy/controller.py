@@ -1,18 +1,21 @@
 """Multi class incapsulation implementation.  """
 import cv2
 import logging
+import numpy as np
 from HalloPy.hallopy.icontroller import Icontroller
-from HalloPy.hallopy.detector import Detector
+from hallopy import utils
 
 # Create loggers.
+
 frame_logger = logging.getLogger('frame_handler')
+face_processor_logger = logging.getLogger('face_processor_handler')
 ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
 # create formatter and add it to the handlers.
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to loggers.
 frame_logger.addHandler(ch)
+face_processor_logger.addHandler(ch)
 
 
 class FrameHandler:
@@ -20,12 +23,14 @@ class FrameHandler:
 
     and perform some preprocessing.
     """
+    _input_frame = ...  # type: np.ndarray
 
     def __init__(self):
         """Init preprocessing params.  """
         self.logger = logging.getLogger('frame_handler')
-        self.__cap_region_x_begin = 0.6
-        self.__cap_region_y_end = 0.6
+        self.logger.setLevel(logging.INFO)
+        self._cap_region_x_begin = 0.6
+        self._cap_region_y_end = 0.6
         self._input_frame = None
 
     @property
@@ -35,19 +40,73 @@ class FrameHandler:
     @input_frame.setter
     def input_frame(self, input_frame_from_camera):
         """Setter with preprocessing.  """
+
         try:
-            self._input_frame = cv2.bilateralFilter(input_frame_from_camera, 5, 50, 100)  # smoothing filter
-            self._input_frame = cv2.flip(input_frame_from_camera, 1)
-            self._draw_roi()
-        except cv2.error:
-            self.logger.error("Input frame is None")
+            # make sure input is np.ndarray
+            assert type(input_frame_from_camera).__module__ == np.__name__
+        except AssertionError as error:
+            self.logger.exception(error)
+            return
+
+        self._input_frame = cv2.bilateralFilter(input_frame_from_camera, 5, 50, 100)  # smoothing filter
+        self._input_frame = cv2.flip(input_frame_from_camera, 1)
+        self._draw_roi()
 
     def _draw_roi(self):
         """Function for drawing the ROI on input frame"""
 
-        cv2.rectangle(self._input_frame, (int(self.__cap_region_x_begin * self._input_frame.shape[1]) - 20, 0),
-                      (self._input_frame.shape[1], int(self.__cap_region_y_end * self._input_frame.shape[0]) + 20),
+        cv2.rectangle(self._input_frame, (int(self._cap_region_x_begin * self._input_frame.shape[1]) - 20, 0),
+                      (self._input_frame.shape[1], int(self._cap_region_y_end * self._input_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
+
+
+class FaceProcessor:
+    """FaceProcessor detect & cover faces in preprocessed input_frame.  """
+    _preprocessed_input_frame = ...  # type: np.ndarray
+
+    def __init__(self):
+        self.logger = logging.getLogger('face_processor_handler')
+        self.logger.setLevel(logging.INFO)
+        self._face_detector = None
+        self._face_padding_x = 20
+        self._face_padding_y = 60
+        self._preprocessed_input_frame = None
+
+    @property
+    def face_covered_frame(self):
+        """Return a face covered frame"""
+        return self._preprocessed_input_frame
+
+    @face_covered_frame.setter
+    def face_covered_frame(self, input_frame_with_faces):
+        """Function to draw black recs over detected faces.
+
+        This function remove eny 'noise' and help detector detecting palm.
+        :param input_frame_with_faces (np.ndarray): a frame with faces, that needed to be covered.
+        """
+
+        try:
+            # make sure input is np.ndarray
+            assert type(input_frame_with_faces).__module__ == np.__name__
+        except AssertionError as error:
+            self.logger.exception(error)
+            return
+
+        # Preparation
+        self._preprocessed_input_frame = input_frame_with_faces.copy()
+        gray = cv2.cvtColor(self._preprocessed_input_frame, cv2.COLOR_BGR2GRAY)
+
+        if self._face_detector is None:
+            # Load the face detector cascade.
+            self.logger.debug("Initiating: Face detector")
+            self._face_detector = cv2.CascadeClassifier(
+                utils.get_full_path('hallopy/config/haarcascade_frontalface_default.xml'))
+        faces = self._face_detector.detectMultiScale(gray, 1.3, 5)
+
+        # Black rectangle over faces to remove skin noises.
+        for (x, y, w, h) in faces:
+            self._preprocessed_input_frame[y - self._face_padding_y:y + h + self._face_padding_y,
+            x - self._face_padding_x:x + w + self._face_padding_x, :] = 0
 
 
 class Controller(Icontroller):

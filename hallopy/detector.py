@@ -5,7 +5,6 @@ This module contains Detector class and all its relevant functionality,
 """
 import cv2
 import numpy as np
-from HalloPy.util import files
 import logging
 
 # create logger
@@ -34,9 +33,6 @@ class Detector:
         self.learning_Rate = 0
         self.bg_model = None
 
-        self.face_padding_x = 20
-        self.face_padding_y = 60
-
         # self.input_frame = None
         self.out_put_frame = None
         self.detected = None
@@ -46,8 +42,6 @@ class Detector:
         self.horiz_axe_offset = 60
 
         self.gray = None
-        self.face_detector = None
-        self.faces = None
 
         self.max_area_contour = None
 
