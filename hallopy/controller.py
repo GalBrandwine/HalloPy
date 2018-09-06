@@ -1,9 +1,11 @@
 """Multi class incapsulation implementation.  """
+import queue
 import cv2
 import logging
 import numpy as np
 from HalloPy.hallopy.icontroller import Icontroller
 from hallopy import utils
+from concurrent.futures import ThreadPoolExecutor
 
 # Create loggers.
 frame_logger = logging.getLogger('frame_handler')
@@ -19,6 +21,20 @@ frame_logger.addHandler(ch)
 face_processor_logger.addHandler(ch)
 back_ground_remover_logger.addHandler(ch)
 detector_logger.addHandler(ch)
+
+tp = ThreadPoolExecutor(10)  # max 10 threads
+
+
+def threaded(fn):
+    """ Decorator for keyboard_input function.
+
+    In order to make the function call run in a thread.
+    """
+
+    def wrapper(*args, **kwargs):
+        return tp.submit(fn, *args, **kwargs)  # returns Future object
+
+    return wrapper
 
 
 class FrameHandler:
@@ -109,7 +125,11 @@ class FaceProcessor:
 
 
 class BackGroundRemover:
-    """BackGroundRemover removes background from inputed (preprocessed and face covered) frame.  """
+    """BackGroundRemover removes background from inputted
+
+     (preprocessed and face covered) frame.
+     """
+    _input_frame_with_hand = ...  # type: np.ndarray
 
     def __init__(self):
         self.logger = logging.getLogger('back_ground_remover_handler')
@@ -147,9 +167,9 @@ class BackGroundRemover:
 
 
 class Detector:
-    """Detector class detect hand.
+    """Detector class detect hands features.
 
-    Initiated object will recieve a preprocessed frame, with detected & covered faces.
+    Initiated object will receive a preprocessed frame, with detected & covered faces.
     """
 
     def __init__(self):
@@ -167,7 +187,7 @@ class Detector:
 
 
 class Controller(Icontroller):
-    """Controller class holds a detector and a extractor.
+    """Controller class holds all elements relevant for hand features extracting.
 
     :param icontroller.Icontroller: implemented interface
     """
@@ -183,10 +203,31 @@ class Controller(Icontroller):
         self.rotate_left = 0
         self.rotate_right = 0
 
+        # Controller window & keyboard_input queue initiations.
+        self._cv_window = cv2.namedWindow('Hand feature extraction controller')
+        self._queue = queue.Queue()
+        self.keyboard_input = None
+
         # Initiate inner objects
         self.frame_handler = FrameHandler()
         self.face_processor = FaceProcessor()
         self.back_ground_remover = BackGroundRemover()
+
+    @threaded
+    def keyboard_input_thread_init(self):
+        """Simple keyboard input loop.
+
+        Decorated with thread, because this function calculates
+        things in different thread.
+         """
+        while self.keyboard_input != 27:
+            # Keyboard OP
+            self.keyboard_input = cv2.waitKey(1)
+            self._queue.put(self.keyboard_input)
+
+    def get_keyboard_input(self):
+        self.keyboard_input = self._queue.get()
+        return self.keyboard_input
 
     def get_up_param(self):
         """Return up parameter (int between 0..100). """
