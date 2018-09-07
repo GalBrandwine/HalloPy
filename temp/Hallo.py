@@ -504,8 +504,6 @@ def main(conf):
             frame[0:int(cap_region_y_end * frame.shape[0]),
             int(cap_region_x_begin * frame.shape[1]):frame.shape[1], :] = img
             cv2.imshow(conf.halloTitle, frame)
-        if keyBoardThread.is_alive() == False:
-            break
             # operations using detected fingers, maybe good for later
             # if triggerSwitch is True:
             #     if isFinishCal is True and cnt <= 2:

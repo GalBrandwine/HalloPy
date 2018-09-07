@@ -1,11 +1,10 @@
 """Multi class incapsulation implementation.  """
-import queue
 import cv2
 import logging
 import numpy as np
 from HalloPy.hallopy.icontroller import Icontroller
 from hallopy import utils
-from concurrent.futures import ThreadPoolExecutor
+
 
 # Create loggers.
 frame_logger = logging.getLogger('frame_handler')
@@ -22,19 +21,83 @@ face_processor_logger.addHandler(ch)
 back_ground_remover_logger.addHandler(ch)
 detector_logger.addHandler(ch)
 
-tp = ThreadPoolExecutor(10)  # max 10 threads
 
+class FlagsHandler:
+    """Simple class for setting flags.  """
 
-def threaded(fn):
-    """ Decorator for keyboard_input function.
+    def __init__(self):
+        self._key_board_input = None
+        self.lifted = False
+        self.quit_flag = False
+        self.background_capture_required = True
+        self.isBgCaptured = False
+        self.calibrated = False
+        self.handControl = False
+        self.make_threshold_thinner = False
+        self.make_threshold_thicker = False
 
-    In order to make the function call run in a thread.
-    """
+    @property
+    def keyboard_input(self):
+        return self._key_board_input
 
-    def wrapper(*args, **kwargs):
-        return tp.submit(fn, *args, **kwargs)  # returns Future object
+    @keyboard_input.setter
+    def keyboard_input(self, input_from_key_board):
+        """State machine.  """
+        if input_from_key_board == 27 and self.lifted is False:
+            # press ESC to exit
+            print('!!!quiting!!!')  # todo: change to logger
+            self.quit_flag = True
+        elif input_from_key_board == 27:
+            print('!!!cant quit without landing!!!')  # todo: change to logger
+        elif input_from_key_board == ord('b'):
+            # press 'b' to capture the background
+            self.background_capture_required = True
+            self.isBgCaptured = True
+            print('!!!Background Captured!!!')  # todo: change to logger
 
-    return wrapper
+        # elif k == ord('r'):  # press 'r' to reset the background
+        #     bgModel = None
+        #     triggerSwitch = False
+        #     isBgCaptured = 0
+        #     print('!!!Reset BackGround!!!')
+        elif input_from_key_board == ord('t') and self.calibrated is True:
+            """Take off"""
+            print('!!!Take of!!!')  # todo: change to logger
+            if self.lifted is not True:
+                print('Wait 5 seconds')  # todo: change to logger
+                # drone.takeoff()
+                # time.sleep(5)
+            self.lifted = True
+        elif input_from_key_board == ord('l'):
+            """Land"""
+            # old_frame_captured = False
+            self.lifted = False
+            print('!!!Landing!!!')  # todo: change to logger
+            # if drone is not None:
+            #     print('Wait 5 seconds')
+            #     drone.land()
+            #     time.sleep(5)
+        elif input_from_key_board == ord('c'):
+            """Control"""
+            if self.handControl is True:
+                self.handControl = False
+                # old_frame_captured = False
+                print("control switched to keyboard")  # todo: change to logger
+            elif self.lifted is True:
+                print("control switched to detected hand")  # todo: change to logger
+                self.handControl = True
+        elif input_from_key_board == ord('z'):
+            """ calibrating Threshold from keyboard """
+            self.make_threshold_thicker = True
+            # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
+            # if tempThreshold >= 0:
+            #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+        elif input_from_key_board == ord('x'):
+            """ calibrating Threshold from keyboard """
+            self.make_threshold_thicker = True
+            # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
+            # if tempThreshold <= 100:
+            #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
 
 
 class FrameHandler:
@@ -131,16 +194,18 @@ class BackGroundRemover:
      """
     _input_frame_with_hand = ...  # type: np.ndarray
 
-    def __init__(self):
+    def __init__(self, flags_handler):
         self.logger = logging.getLogger('back_ground_remover_handler')
         self._cap_region_x_begin = 0.6
         self._cap_region_y_end = 0.6
-        self._threshold = 50
-        self._blur_Value = 41
+        # todo: Belong to detector
+        # self._threshold = 50
+        # self._blur_Value = 41
         self._bg_Sub_Threshold = 50
         self._learning_Rate = 0
         self._bg_model = None
         self._input_frame_with_hand = None
+        self.flag_handler = flags_handler
 
     @property
     def detected_frame(self):
@@ -150,20 +215,22 @@ class BackGroundRemover:
     @detected_frame.setter
     def detected_frame(self, preprocessed_faced_covered_input_frame):
         """Function for removing background from input frame. """
-        # todo: bg_model bgModel initation to controller's input_from_keyboard_thread.
-        if self._bg_model is None:
+        if self.flag_handler.background_capture_required is True:
             self._bg_model = cv2.createBackgroundSubtractorMOG2(0, self._bg_Sub_Threshold)
-
-        fgmask = self._bg_model.apply(preprocessed_faced_covered_input_frame, learningRate=self._learning_Rate)
-        kernel = np.ones((3, 3), np.uint8)
-        fgmask = cv2.erode(fgmask, kernel, iterations=1)
-        res = cv2.bitwise_and(preprocessed_faced_covered_input_frame, preprocessed_faced_covered_input_frame,
-                              mask=fgmask)
-        self._input_frame_with_hand = res[
-                                      0:int(self._cap_region_y_end * preprocessed_faced_covered_input_frame.shape[0]),
-                                      int(self._cap_region_x_begin * preprocessed_faced_covered_input_frame.shape[1]):
-                                      preprocessed_faced_covered_input_frame.shape[
-                                          1]]  # clip the ROI
+            self.flag_handler.background_capture_required = False
+        if self._bg_model is not None:
+            fgmask = self._bg_model.apply(preprocessed_faced_covered_input_frame, learningRate=self._learning_Rate)
+            kernel = np.ones((3, 3), np.uint8)
+            fgmask = cv2.erode(fgmask, kernel, iterations=1)
+            res = cv2.bitwise_and(preprocessed_faced_covered_input_frame, preprocessed_faced_covered_input_frame,
+                                  mask=fgmask)
+            self._input_frame_with_hand = res[
+                                          0:int(
+                                              self._cap_region_y_end * preprocessed_faced_covered_input_frame.shape[0]),
+                                          int(self._cap_region_x_begin * preprocessed_faced_covered_input_frame.shape[
+                                              1]):
+                                          preprocessed_faced_covered_input_frame.shape[
+                                              1]]  # clip the ROI
 
 
 class Detector:
@@ -203,31 +270,23 @@ class Controller(Icontroller):
         self.rotate_left = 0
         self.rotate_right = 0
 
-        # Controller window & keyboard_input queue initiations.
-        self._cv_window = cv2.namedWindow('Hand feature extraction controller')
-        self._queue = queue.Queue()
-        self.keyboard_input = None
-
         # Initiate inner objects
+        self.flags_handler = FlagsHandler()
         self.frame_handler = FrameHandler()
         self.face_processor = FaceProcessor()
-        self.back_ground_remover = BackGroundRemover()
+        self.back_ground_remover = BackGroundRemover(self.flags_handler)
 
-    @threaded
-    def keyboard_input_thread_init(self):
-        """Simple keyboard input loop.
+    def start(self):
+        """Function for starting image pipe processing.  """
+        camera = cv2.VideoCapture(0)
+        cv2.namedWindow('Controller')
+        while self.flags_handler.quit_flag is False:
+            ret, frame = camera.read()
+            cv2.imshow('Controller', frame)
+            self.flags_handler.keyboard_input = cv2.waitKey(1)
 
-        Decorated with thread, because this function calculates
-        things in different thread.
-         """
-        while self.keyboard_input != 27:
-            # Keyboard OP
-            self.keyboard_input = cv2.waitKey(1)
-            self._queue.put(self.keyboard_input)
-
-    def get_keyboard_input(self):
-        self.keyboard_input = self._queue.get()
-        return self.keyboard_input
+        camera.release()
+        cv2.destroyWindow('Controller')
 
     def get_up_param(self):
         """Return up parameter (int between 0..100). """

@@ -84,25 +84,25 @@ class Detector:
 
     # self.remove_back_ground(self.detected)
 
-    # todo: move to detector
-    def remove_back_ground(self, detected):
-        """Function to remove back-ground from detected.
-
-        Removing background help's find hand.
-        """
-
-        # todo: bg_model bgModel initation to controller's input_from_keyboard_thread.
-        if self.bg_model is None:
-            self.bg_model = cv2.createBackgroundSubtractorMOG2(0, self.bg_Sub_Threshold)
-
-        fgmask = self.bg_model.apply(detected, learningRate=self.learning_Rate)
-        kernel = np.ones((3, 3), np.uint8)
-        fgmask = cv2.erode(fgmask, kernel, iterations=1)
-        res = cv2.bitwise_and(detected, detected, mask=fgmask)
-        self.detected = res[0:int(self.cap_region_y_end * self.detected.shape[0]),
-                        int(self.cap_region_x_begin * self.detected.shape[1]):self.detected.shape[1]]  # clip the ROI
-
-        self.find_largest_contour(self.detected)
+    # # todo: move to detector
+    # def remove_back_ground(self, detected):
+    #     """Function to remove back-ground from detected.
+    #
+    #     Removing background help's find hand.
+    #     """
+    #
+    #     # todo: bg_model bgModel initation to controller's input_from_keyboard_thread.
+    #     if self.bg_model is None:
+    #         self.bg_model = cv2.createBackgroundSubtractorMOG2(0, self.bg_Sub_Threshold)
+    #
+    #     fgmask = self.bg_model.apply(detected, learningRate=self.learning_Rate)
+    #     kernel = np.ones((3, 3), np.uint8)
+    #     fgmask = cv2.erode(fgmask, kernel, iterations=1)
+    #     res = cv2.bitwise_and(detected, detected, mask=fgmask)
+    #     self.detected = res[0:int(self.cap_region_y_end * self.detected.shape[0]),
+    #                     int(self.cap_region_x_begin * self.detected.shape[1]):self.detected.shape[1]]  # clip the ROI
+    #
+    #     self.find_largest_contour(self.detected)
 
     # todo: move to detector
     def find_largest_contour(self, detected):

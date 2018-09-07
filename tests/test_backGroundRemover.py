@@ -1,9 +1,9 @@
-import threading
+
 
 import cv2
 
 from hallopy import utils
-from hallopy.controller import Controller, BackGroundRemover
+from hallopy.controller import BackGroundRemover, FlagsHandler
 from util.image_comp_tool import ImageTestTool
 
 
@@ -19,7 +19,7 @@ class TestBackGroundRemover:
         ret = True
 
         # run
-        while (ret):
+        while ret is True:
             ret, frame = cap.read()
             if ret is True:
                 back_ground_remover.detected_frame = frame
@@ -38,39 +38,31 @@ class TestBackGroundRemover:
         """Test if background model is being reset correctly.
 
         resetting background model is via keyboard input,
-        in Controller there's an keyboard_input_thread.
+        in Controller's flags_handler.
         """
         # setup
-        # expected_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
-        # expected = cv2.imread(expected_path)
-        # test_path = utils.get_full_path('docs/face_and_hand_0.avi')
         # Input from camera.
+        cv2.namedWindow('test')
         cap = cv2.VideoCapture(0)
-        back_ground_remover = BackGroundRemover()
-        controller = Controller()
-        controller.keyboard_input_thread_init()
-        while controller.get_keyboard_input() != 27:
-            print(controller.get_keyboard_input())  # will block until result is computed
+        flags_handler = FlagsHandler()
+        back_ground_remover = BackGroundRemover(flags_handler)
 
-        # runf
-        while cap.isOpened():
+        # run
+        while flags_handler.quit_flag is False:
             """
             Inside loop, remove back ground from frame using back_ground_remover,
             here we are testing for background model resetting.
-            the reset flag is changed in Controller's key_board_input thread.
+            the reset flag is changed within Controller's flags_handler.
+            
+            Pressing 'b': will rest background.
+            Pressing esc: break loop.
             """
             ret, frame = cap.read()
             if ret is True:
                 back_ground_remover.detected_frame = frame
-                cv2.imshow('iner test', back_ground_remover.detected_frame)
-                cv2.waitKey(1)
-                print(controller.get_keyboard_input())
-
-        # write_path = utils.get_full_path('docs')
-        # cv2.imwrite(write_path+'/back_ground_removed_frame.jpg',back_ground_remover.detected_frame)
-        ssim = ImageTestTool.compare_imaged(back_ground_remover.detected_frame, expected)
-        # print("SSIM: {}".format(ssim))
-        assert ssim >= 0.95
+                if back_ground_remover.detected_frame is not None:
+                    cv2.imshow('test', back_ground_remover.detected_frame)
+                flags_handler.keyboard_input = cv2.waitKey(1)
 
         # teardown
         cap.release()
