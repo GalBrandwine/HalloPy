@@ -306,25 +306,28 @@ def main(conf):
 
         #  Main operation
         if conf.isBgCaptured == 1:  # this part wont run until background captured
+            # feature moved to new HalloPy architecture
             img = removeBG(frame, conf)
             img = img[0:int(cap_region_y_end * frame.shape[0]),
                   int(cap_region_x_begin * frame.shape[1]):frame.shape[1]]  # clip the ROI
 
             # convert the image into binary image
+            # feature moved to new HalloPy architecture
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             blur = cv2.GaussianBlur(gray, (blurValue, blurValue), 0)
             ret, thresh = cv2.threshold(blur, threshold, 255, cv2.THRESH_BINARY)
 
+            # feature moved to new HalloPy architecture
             # get the contours
             thresh1 = copy.deepcopy(thresh)
             _, contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             length = len(contours)
             maxArea = -1
 
+            # feature moved to new HalloPy architecture
             # Copy img, before drawing on it, so OpticalFlow won't be affected.
             extractedMovement = img.copy()
             frameCenter = drawMovementsAxes(img)
-
             if length > 0:
                 for i in range(length):  # find the biggest contour (according to area)
                     temp = contours[i]

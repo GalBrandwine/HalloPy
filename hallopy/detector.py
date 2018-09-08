@@ -105,54 +105,54 @@ class Detector:
     #     self.find_largest_contour(self.detected)
 
     # todo: move to detector
-    def find_largest_contour(self, detected):
-        """Function for finding largest contour in contours.
-
-        todo: remove 'draw it on self.detected' to controller's input_from_keyboard_thread:
-        # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
-        """
-
-        # Preparation
-        self.detected_gray = cv2.cvtColor(detected, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(self.detected_gray, (self.blur_Value, self.blur_Value), 0)
-        _, thresh = cv2.threshold(blur, self.threshold, 255, cv2.THRESH_BINARY)
-
-        # Get the contours.
-        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        # Find the biggest area.
-        self.max_area_contour = max(contours, key=cv2.contourArea)
-        try:
-            self.detected_out_put_center = self.draw_axes(self.detected)
-        except AttributeError:
-            self.logger.error("self.detected not initiated!")
+        # def find_largest_contour(self, detected):
+        #     """Function for finding largest contour in contours.
+        #
+        #     todo: remove 'draw it on self.detected' to controller's input_from_keyboard_thread:
+        #     # cv2.drawContours(detected, self.max_area_contour, -1, (0, 255, 0), 3)
+        #     """
+        #
+        #     # Preparation
+        #     self.detected_gray = cv2.cvtColor(detected, cv2.COLOR_BGR2GRAY)
+        #     blur = cv2.GaussianBlur(self.detected_gray, (self.blur_Value, self.blur_Value), 0)
+        #     _, thresh = cv2.threshold(blur, self.threshold, 255, cv2.THRESH_BINARY)
+        #
+        #     # Get the contours.
+        #     _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        #     # Find the biggest area.
+        #     self.max_area_contour = max(contours, key=cv2.contourArea)
+        #     try:
+        #         self.detected_out_put_center = self.draw_axes(self.detected)
+        #     except AttributeError:
+        #         self.logger.error("self.detected not initiated!")
 
     # todo: move to detector
-    def draw_axes(self, detected):
+        # def draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
 
         Return detected_out_put_center (point): the center coord' of detected_out_put.
         """
 
-        # Preparation
-        self.detected_out_put = detected.copy()
-
-        # np.array are opposite than cv2 row/cols indexing.
-        detected_out_put_center = (
-            int(self.detected_out_put.shape[1] / 2), int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
-        horiz_axe_start = (0, int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
-        horiz_axe_end = (
-            self.detected_out_put.shape[1], int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
-
-        vertic_y_start = (int(self.detected_out_put.shape[1] / 2), 0)
-        vertic_y_end = (int(self.detected_out_put.shape[1] / 2), self.detected_out_put.shape[0])
-
-        # draw movement axe X
-        cv2.line(self.detected_out_put, horiz_axe_start, horiz_axe_end
-                 , (0, 0, 255), thickness=3)
-        # draw movement axe Y
-        cv2.line(self.detected_out_put, vertic_y_start, vertic_y_end
-                 , (0, 0, 255), thickness=3)
-        return detected_out_put_center
+        # # Preparation
+        # self.detected_out_put = detected.copy()
+        #
+        # # np.array are opposite than cv2 row/cols indexing.
+        # detected_out_put_center = (
+        #     int(self.detected_out_put.shape[1] / 2), int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+        # horiz_axe_start = (0, int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+        # horiz_axe_end = (
+        #     self.detected_out_put.shape[1], int(self.detected_out_put.shape[0] / 2) + self.horiz_axe_offset)
+        #
+        # vertic_y_start = (int(self.detected_out_put.shape[1] / 2), 0)
+        # vertic_y_end = (int(self.detected_out_put.shape[1] / 2), self.detected_out_put.shape[0])
+        #
+        # # draw movement axe X
+        # cv2.line(self.detected_out_put, horiz_axe_start, horiz_axe_end
+        #          , (0, 0, 255), thickness=3)
+        # # draw movement axe Y
+        # cv2.line(self.detected_out_put, vertic_y_start, vertic_y_end
+        #          , (0, 0, 255), thickness=3)
+        # return detected_out_put_center
 
     """ At this point (in top-down data flow), 'self' has: 
         1. input_frame: a untouched inserted frame.

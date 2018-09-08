@@ -11,6 +11,7 @@ frame_logger = logging.getLogger('frame_handler')
 face_processor_logger = logging.getLogger('face_processor_handler')
 back_ground_remover_logger = logging.getLogger('back_ground_remover_handler')
 detector_logger = logging.getLogger('detector_handler')
+extractor_logger = logging.getLogger('extractor_handler')
 ch = logging.StreamHandler()
 # create formatter and add it to the handlers.
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,7 +21,7 @@ frame_logger.addHandler(ch)
 face_processor_logger.addHandler(ch)
 back_ground_remover_logger.addHandler(ch)
 detector_logger.addHandler(ch)
-
+extractor_logger.addHandler(ch)
 
 class FlagsHandler:
     """Simple class for setting flags.  """
@@ -86,6 +87,8 @@ class FlagsHandler:
             elif self.lifted is True:
                 print("control switched to detected hand")  # todo: change to logger
                 self.handControl = True
+            else:
+                print("Drone not in the air, cant change control to hand")  # todo: change to logger
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
             self.make_threshold_thinner = True
@@ -311,6 +314,37 @@ class Detector:
 
         self._detected_out_put = temp_output
         return detected_out_put_center
+
+
+class Extractor:
+    """Extractor recievs detected object,
+
+    saves its 'center_of_frame' and 'max_contour'.
+    and perform the following calculations:
+    1. find middle finger coordination.
+    2. calculate palm center of mass --> palms center coordination.
+    3. calculate palms rotation.
+    """
+
+    def __init__(self, flags_handler):
+        """
+
+        :type detector_object: Detector
+        """
+        self.logger = logging.getLogger('extractor_handler')
+        self.flags_handler = flags_handler
+        # detector hold: palms contour, frame_center, frame with drawn axes.
+        self.detector = None
+        self._detected_hand = None
+
+    @property
+    def extract(self):
+        return self._detected_hand
+
+    @extract.setter
+    def extract(self, detector):
+        assert isinstance(detector, Detector), self.logger.error("input is not Detector object!")
+
 
 
 class Controller(Icontroller):

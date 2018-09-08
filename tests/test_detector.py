@@ -44,8 +44,6 @@ class TestDetector:
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         expected = test_image.copy()
-        # roi = {'cap_region_y_end': 0.6, 'cap_region_x_begin': 0.6}
-        # expected = ImageTestTool.clip_roi(expected, roi)
         # Create detector
         flags_handler = FlagsHandler()
         detector = Detector(flags_handler)
