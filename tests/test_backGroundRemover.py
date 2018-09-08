@@ -8,6 +8,8 @@ from util.image_comp_tool import ImageTestTool
 
 
 class TestBackGroundRemover:
+    """TestBackGroundRemover tests BackgroundRemover functionality.  """
+
     def test_detected_frame(self):
         """Test if input frames background is being removed correctly.  """
         # setup
@@ -15,7 +17,8 @@ class TestBackGroundRemover:
         expected = cv2.imread(expected_path)
         test_path = utils.get_full_path('docs/face_and_hand_0.avi')
         cap = cv2.VideoCapture(test_path)
-        back_ground_remover = BackGroundRemover()
+        flags_handler = FlagsHandler()
+        back_ground_remover = BackGroundRemover(flags_handler)
         ret = True
 
         # run

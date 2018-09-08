@@ -88,12 +88,14 @@ class FlagsHandler:
                 self.handControl = True
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
-            self.make_threshold_thicker = True
+            self.make_threshold_thinner = True
+            print("made threshold thinner")
             # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
             # if tempThreshold >= 0:
             #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
         elif input_from_key_board == ord('x'):
             """ calibrating Threshold from keyboard """
+            print("made threshold thicker")
             self.make_threshold_thicker = True
             # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
             # if tempThreshold <= 100:
@@ -234,23 +236,81 @@ class BackGroundRemover:
 
 
 class Detector:
-    """Detector class detect hands features.
+    """Detector class detect hands contour and center of frame.
 
     Initiated object will receive a preprocessed frame, with detected & covered faces.
     """
+    _input_frame_with_background_removed = ...  # type: np.ndarray
 
-    def __init__(self):
+    def __init__(self, flags_handler):
         self.logger = logging.getLogger('detector_handler')
-
-        self._input_frame_with_hand = None
-        self.detected_gray = None
-        self.detected_out_put = None
-
-        self.detected_out_put_center = None
+        self.flags_handler = flags_handler
+        self._input_frame_with_background_removed = None
+        self._threshold = 50
+        self._blur_Value = 41
         self.horiz_axe_offset = 60
-
-        self.gray = None
+        # self._detected_gray = None
+        self._detected_out_put = None
+        # max_area_contour: the contour of the detected hand.
         self.max_area_contour = None
+        # Detected_out_put_center: the center point of the ROI
+        self.detected_out_put_center = None
+
+    @property
+    def input_frame_for_feature_extraction(self):
+        return self._detected_out_put
+
+    @input_frame_for_feature_extraction.setter
+    def input_frame_for_feature_extraction(self, input_frame_with_background_removed):
+        """Function for finding hand contour. """
+        # Preparation
+        # Update threshold
+        if self.flags_handler.make_threshold_thinner is True and self._threshold >= 0:
+            self.flags_handler.make_threshold_thinner = False
+            self._threshold = self._threshold - 1
+        elif self.flags_handler.make_threshold_thicker is True and self._threshold <= 100:
+            self.flags_handler.make_threshold_thicker = False
+            self._threshold = self._threshold + 1
+
+        temp_detected_gray = cv2.cvtColor(input_frame_with_background_removed, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(temp_detected_gray, (self._blur_Value, self._blur_Value), 0)
+        _, thresh = cv2.threshold(blur, self._threshold, 255, cv2.THRESH_BINARY)
+
+        # Get the contours.
+        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # Find the biggest area.
+        self.max_area_contour = max(contours, key=cv2.contourArea)
+        try:
+            self.detected_out_put_center = self._draw_axes(input_frame_with_background_removed)
+        except AttributeError:
+            self.logger.error("something went wrong in self._draw_axes!")
+
+    def _draw_axes(self, detected):
+        """Function for drawing axes on detected_out_put.
+
+        Return detected_out_put_center (point): the center coord' of detected_out_put.
+        """
+
+        # Preparation
+        temp_output = detected.copy()
+        # np.array are opposite than cv2 row/cols indexing.
+        detected_out_put_center = (
+            int(temp_output.shape[1] / 2), int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
+        horiz_axe_start = (0, int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
+        horiz_axe_end = (
+            temp_output.shape[1], int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
+
+        vertic_y_start = (int(temp_output.shape[1] / 2), 0)
+        vertic_y_end = (int(temp_output.shape[1] / 2), temp_output.shape[0])
+
+        # draw movement axes.
+        cv2.line(temp_output, horiz_axe_start, horiz_axe_end
+                 , (0, 0, 255), thickness=3)
+        cv2.line(temp_output, vertic_y_start, vertic_y_end
+                 , (0, 0, 255), thickness=3)
+
+        self._detected_out_put = temp_output
+        return detected_out_put_center
 
 
 class Controller(Icontroller):

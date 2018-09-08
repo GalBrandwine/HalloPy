@@ -1,5 +1,5 @@
 import cv2
-from HalloPy.hallopy.detector import Detector
+from HalloPy.hallopy.controller import Detector, FlagsHandler, BackGroundRemover
 from HalloPy.util.image_comp_tool import ImageTestTool
 from hallopy import utils
 
@@ -7,33 +7,10 @@ from hallopy import utils
 class TestDetector:
     """Unittests for a Detector object.  """
 
-    # def test_cover_faces(self):
-    #     """Test if cover_faces cover detected faces with black rec's correctly.  """
-    #
-    #     # setup
-    #     test_path = utils.get_full_path('docs/testing_img.jpg')
-    #     test_image = cv2.imread(test_path)
-    #     # Because image loaded from local, and not received from web-cam, a flip is needed.
-    #     test_image = cv2.flip(test_image, 1)
-    #     expected = test_image.copy()
-    #     expected = cv2.bilateralFilter(expected, 5, 50, 100)  # smoothing filter
-    #     expected = cv2.flip(expected, 1)
-    #     faces = ImageTestTool.detect_faces(expected)
-    #     ImageTestTool.draw_black_recs(expected, faces)
-    #
-    #     # Create detector
-    #     detector = Detector()
-    #     detector.set_frame(test_image)
-    #
-    #     # run
-    #     # range [-1, 1] with a value of one being a “perfect match”.
-    #     ssim = ImageTestTool.compare_imaged(detector.out_put_frame, expected)
-    #     assert ssim >= 0.95
-
     def test_find_largest_contours(self):
         """Test if largest contours is found.  """
         # setup
-        test_path = utils.get_full_path('docs/hand_contour.jpg')
+        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -47,28 +24,67 @@ class TestDetector:
         max_area_contour = max(contours, key=cv2.contourArea)
         expected_area = cv2.contourArea(max_area_contour)
         # Create detector
-        detector = Detector()
-        detector.find_largest_contour(test_image)
+        flags_handler = FlagsHandler()
+        detector = Detector(flags_handler)
 
         # run
+        detector.input_frame_for_feature_extraction = test_image
         result_area = cv2.contourArea(detector.max_area_contour)
+        # cv2.imshow('expected', expected_gray)
+        # cv2.imshow('result', detector.input_frame_for_feature_extraction)
+        # cv2.waitKey()
+
         assert result_area == expected_area
 
     def test_draw_axes(self):
         """Test if detected_out_put_center calculated properly.  """
         # setup
-        test_path = utils.get_full_path('docs/hand_contour.jpg')
+        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         expected = test_image.copy()
-        roi = {'cap_region_y_end': 0.6, 'cap_region_x_begin': 0.6}
-        expected = ImageTestTool.clip_roi(expected, roi)
+        # roi = {'cap_region_y_end': 0.6, 'cap_region_x_begin': 0.6}
+        # expected = ImageTestTool.clip_roi(expected, roi)
         # Create detector
-        detector = Detector()
+        flags_handler = FlagsHandler()
+        detector = Detector(flags_handler)
         expected_detected_out_put_center = (
-        int(expected.shape[1] / 2), int(expected.shape[0] / 2) + detector.horiz_axe_offset)
+            int(expected.shape[1] / 2), int(expected.shape[0] / 2) + detector.horiz_axe_offset)
 
         # run
-        detector.set_frame(test_image)
+        detector.input_frame_for_feature_extraction = test_image
+        cv2.imshow('expected', expected)
+        cv2.imshow('result', detector.input_frame_for_feature_extraction)
+        cv2.waitKey()
         assert expected_detected_out_put_center == detector.detected_out_put_center
+
+    def test_threshold_change(self):
+        """Test if threshold is changed accordingly to flags_handler.  """
+        # setup
+        # Input from camera.
+        cv2.namedWindow('test')
+        cap = cv2.VideoCapture(0)
+        flags_handler = FlagsHandler()
+        detector = Detector(flags_handler)
+
+        # run
+        while flags_handler.quit_flag is False:
+            """
+            Inside loop, update self._threshold according to flags_handler,
+            
+            Pressing 'z': will make threshold thinner.
+            Pressing 'x': will make threshold thicker.
+            Pressing esc: break loop.
+            """
+            ret, frame = cap.read()
+            if ret is True:
+                detector.input_frame_for_feature_extraction = frame
+                result = detector.input_frame_for_feature_extraction
+                cv2.drawContours(result, [detector.max_area_contour], 0, (0, 0, 255), thickness=2)
+                cv2.imshow('test', result)
+                flags_handler.keyboard_input = cv2.waitKey(1)
+
+        # teardown
+        cap.release()
+        cv2.destroyAllWindows()
