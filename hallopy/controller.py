@@ -5,7 +5,6 @@ import numpy as np
 from HalloPy.hallopy.icontroller import Icontroller
 from hallopy import utils
 
-
 # Create loggers.
 frame_logger = logging.getLogger('frame_handler')
 face_processor_logger = logging.getLogger('face_processor_handler')
@@ -23,6 +22,7 @@ back_ground_remover_logger.addHandler(ch)
 detector_logger.addHandler(ch)
 extractor_logger.addHandler(ch)
 
+
 class FlagsHandler:
     """Simple class for setting flags.  """
 
@@ -31,9 +31,9 @@ class FlagsHandler:
         self.lifted = False
         self.quit_flag = False
         self.background_capture_required = True
-        self.isBgCaptured = False
+        self.is_bg_captured = False
         self.calibrated = False
-        self.handControl = False
+        self.hand_control = False
         self.make_threshold_thinner = False
         self.make_threshold_thicker = False
 
@@ -53,7 +53,7 @@ class FlagsHandler:
         elif input_from_key_board == ord('b'):
             # press 'b' to capture the background
             self.background_capture_required = True
-            self.isBgCaptured = True
+            self.is_bg_captured = True
             print('!!!Background Captured!!!')  # todo: change to logger
 
         # elif k == ord('r'):  # press 'r' to reset the background
@@ -64,7 +64,7 @@ class FlagsHandler:
         elif input_from_key_board == ord('t') and self.calibrated is True:
             """Take off"""
             print('!!!Take of!!!')  # todo: change to logger
-            if self.lifted is not True:
+            if self.lifted is False:
                 print('Wait 5 seconds')  # todo: change to logger
                 # drone.takeoff()
                 # time.sleep(5)
@@ -80,15 +80,15 @@ class FlagsHandler:
             #     time.sleep(5)
         elif input_from_key_board == ord('c'):
             """Control"""
-            if self.handControl is True:
-                self.handControl = False
+            if self.hand_control is True:
+                self.hand_control = False
                 # old_frame_captured = False
                 print("control switched to keyboard")  # todo: change to logger
             elif self.lifted is True:
                 print("control switched to detected hand")  # todo: change to logger
-                self.handControl = True
+                self.hand_control = True
             else:
-                print("Drone not in the air, cant change control to hand")  # todo: change to logger
+                print("Drone not in the air, can't change control to hand")  # todo: change to logger
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
             self.make_threshold_thinner = True
@@ -252,7 +252,7 @@ class Detector:
         self._threshold = 50
         self._blur_Value = 41
         self.horiz_axe_offset = 60
-        # self._detected_gray = None
+        self.gray = None
         self._detected_out_put = None
         # max_area_contour: the contour of the detected hand.
         self.max_area_contour = None
@@ -285,6 +285,8 @@ class Detector:
         self.max_area_contour = max(contours, key=cv2.contourArea)
         try:
             self.detected_out_put_center = self._draw_axes(input_frame_with_background_removed)
+            self.gray = temp_detected_gray
+            # self._detected_out_put = input_frame_with_background_removed
         except AttributeError:
             self.logger.error("something went wrong in self._draw_axes!")
 
@@ -312,30 +314,45 @@ class Detector:
         cv2.line(temp_output, vertic_y_start, vertic_y_end
                  , (0, 0, 255), thickness=3)
 
+        self._draw_contours(temp_output)
         self._detected_out_put = temp_output
         return detected_out_put_center
 
+    def _draw_contours(self, input_frame_with_background_removed):
+        """Function for drawing contours of detected hand.
+
+        contour color will accordingly to flags.hand_control flag.
+        """
+        hand_color = None
+        if self.flags_handler.hand_control is True:
+            hand_color = (0, 255, 0)
+        else:
+            hand_color = (0, 0, 255)
+        assert hand_color is not None, self.logger.error("No flags_handler.hand_control initiated")
+        cv2.drawContours(input_frame_with_background_removed, [self.max_area_contour], 0, hand_color, thickness=2)
+
 
 class Extractor:
-    """Extractor recievs detected object,
+    """Extractor receives detected object,
 
     saves its 'center_of_frame' and 'max_contour'.
     and perform the following calculations:
-    1. find middle finger coordination.
-    2. calculate palm center of mass --> palms center coordination.
+    1. calculate palm center of mass --> palms center coordination.
+    2. find middle finger coordination.
     3. calculate palms rotation.
     """
 
     def __init__(self, flags_handler):
-        """
-
-        :type detector_object: Detector
-        """
         self.logger = logging.getLogger('extractor_handler')
         self.flags_handler = flags_handler
         # detector hold: palms contour, frame_center, frame with drawn axes.
         self.detector = None
         self._detected_hand = None
+        self.palm_center_point = None
+        self.middle_finger_edge = None
+        self.lk_params = dict(winSize=(15, 15),
+                              maxLevel=2,
+                              criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
     @property
     def extract(self):
@@ -344,7 +361,53 @@ class Extractor:
     @extract.setter
     def extract(self, detector):
         assert isinstance(detector, Detector), self.logger.error("input is not Detector object!")
+        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+        self._detected_hand = detector._detected_out_put
+        self.middle_finger_edge = self._find_middle_finger_edge(detector.max_area_contour)
 
+    def _hand_center_of_mass(self, hand_contour):
+        """Find contours center of mass.  """
+        M = cv2.moments(hand_contour)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+        else:
+            cX, cY = 0, 0
+
+        return cX, cY
+
+    def _find_middle_finger_edge(self, hand_contour):
+        """Function for calculating middle finger edge coordination.
+        :type hand_contour: collection.iter
+        """
+        desiredPoint = None
+        temp_y = self._detected_hand.shape[1]
+        for point in hand_contour:  # find highest point in contour, and track that point
+            if point[0][1] < temp_y:
+                temp_y = point[0][1]
+
+        return point[0][0], point[0][1]
+
+    def _calculate_optical_flow(self, old_gray, frame_gray, p0):
+        """
+            This function tracks the edge of the Middle finger
+            :param old_gray: old frame, gray scale
+            :param frame_gray: current frame
+            :param p0: previous point for tracking
+            :return: p0 - updated tracking point,
+        """
+        # calculate optical flow
+        p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
+        if p1 is None:
+            # conf.old_frame_captured = False
+            good_new = p0[st == 1]
+        else:
+            good_new = p1[st == 1]
+
+        # Now update the previous frame and previous points
+        old_gray = frame_gray.copy()
+        p0 = good_new.reshape(-1, 1, 2)
+        return p0, old_gray
 
 
 class Controller(Icontroller):

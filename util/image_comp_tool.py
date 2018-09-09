@@ -77,3 +77,44 @@ class ImageTestTool:
         clipped = img[0:int(roi['cap_region_y_end'] * img.shape[0]),
                   int(roi['cap_region_x_begin'] * img.shape[1]):img.shape[1]]  # clip the ROI
         return clipped
+
+    @staticmethod
+    def get_max_area_contour(input_image):
+        # Get the contours.
+        expected_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(expected_gray, (41, 41), 0)
+        _, thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)
+        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Find the biggest area
+        max_area_contour = max(contours, key=cv2.contourArea)
+        return max_area_contour
+
+    @staticmethod
+    def get_contour_area(contour):
+        return cv2.contourArea(contour)
+
+    @staticmethod
+    def get_center_of_mass(contour):
+        """Find contours center of mass.  """
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+        else:
+            cX, cY = 0, 0
+
+        return cX, cY
+
+    @staticmethod
+    def get_middle_finger_edge_coord(contour):
+        """Function for calculating middle finger edge coordination.
+        :type contour: collection.iter
+        """
+
+        temp_y = 1000
+        for point in contour:  # find highest point in contour, and track that point
+            if point[0][1] < temp_y:
+                temp_y = point[0][1]
+
+        return point[0][0], point[0][1]

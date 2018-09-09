@@ -1,7 +1,7 @@
 import cv2
-from HalloPy.hallopy.controller import Detector, FlagsHandler, BackGroundRemover
-from HalloPy.util.image_comp_tool import ImageTestTool
+from HalloPy.hallopy.controller import Detector, FlagsHandler
 from hallopy import utils
+from util.image_comp_tool import ImageTestTool
 
 
 class TestDetector:
@@ -15,14 +15,9 @@ class TestDetector:
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
         test_image = cv2.bitwise_not(test_image)
-        # Get the contours.
-        expected_gray = cv2.cvtColor(test_image, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(expected_gray, (41, 41), 0)
-        _, thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)
-        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        # Find the biggest area
-        max_area_contour = max(contours, key=cv2.contourArea)
-        expected_area = cv2.contourArea(max_area_contour)
+
+        max_area_contour = ImageTestTool.get_max_area_contour(test_image)
+        expected_area = ImageTestTool.get_contour_area(max_area_contour)
         # Create detector
         flags_handler = FlagsHandler()
         detector = Detector(flags_handler)
@@ -39,6 +34,7 @@ class TestDetector:
     def test_draw_axes(self):
         """Test if detected_out_put_center calculated properly.  """
         # setup
+
         test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
@@ -57,11 +53,44 @@ class TestDetector:
         cv2.waitKey()
         assert expected_detected_out_put_center == detector.detected_out_put_center
 
+    def test_draw_contour(self):
+        """Test is contour is being drawn accordingly to flags_handles.  """
+        # setup
+        # Input from camera.
+        cv2.namedWindow('test_draw_contour')
+
+        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_image = cv2.imread(test_path)
+        # Because image loaded from local, and not received from web-cam, a flip is needed.
+        test_image = cv2.flip(test_image, 1)
+        expected = test_image.copy()
+        flags_handler = FlagsHandler()
+        # Set flags_handler in order to perform the test.
+        flags_handler.lifted = True
+        flags_handler.calibrated = True
+        detector = Detector(flags_handler)
+
+        # run
+        while flags_handler.quit_flag is False:
+            """
+            Inside loop, update self._threshold according to flags_handler,
+            
+            Pressing 'c': in order to toggle control (suppose to change contour's color between green and red)
+            Pressing 'l': to raise 'land' flag in flags_handler, in order to be able to break loop (with esc)
+            Pressing esc: break loop.
+            """
+            detector.input_frame_for_feature_extraction = test_image
+            cv2.imshow('test_draw_contour', detector.input_frame_for_feature_extraction)
+            flags_handler.keyboard_input = cv2.waitKey(1)
+
+        # teardown
+        cv2.destroyAllWindows()
+
     def test_threshold_change(self):
         """Test if threshold is changed accordingly to flags_handler.  """
         # setup
         # Input from camera.
-        cv2.namedWindow('test')
+        cv2.namedWindow('test_threshold_change')
         cap = cv2.VideoCapture(0)
         flags_handler = FlagsHandler()
         detector = Detector(flags_handler)
@@ -80,7 +109,7 @@ class TestDetector:
                 detector.input_frame_for_feature_extraction = frame
                 result = detector.input_frame_for_feature_extraction
                 cv2.drawContours(result, [detector.max_area_contour], 0, (0, 0, 255), thickness=2)
-                cv2.imshow('test', result)
+                cv2.imshow('test_threshold_change', result)
                 flags_handler.keyboard_input = cv2.waitKey(1)
 
         # teardown
