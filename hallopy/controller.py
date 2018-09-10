@@ -277,18 +277,21 @@ class Detector:
 
         temp_detected_gray = cv2.cvtColor(input_frame_with_background_removed, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(temp_detected_gray, (self._blur_Value, self._blur_Value), 0)
-        _, thresh = cv2.threshold(blur, self._threshold, 255, cv2.THRESH_BINARY)
+        thresh = cv2.threshold(blur, self._threshold, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.erode(thresh, None, iterations=2)
+        thresh = cv2.dilate(thresh, None, iterations=2)
 
         # Get the contours.
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        # Find the biggest area.
-        self.max_area_contour = max(contours, key=cv2.contourArea)
+
         try:
+            # Find the biggest area.
+            self.max_area_contour = max(contours, key=cv2.contourArea)
             self.detected_out_put_center = self._draw_axes(input_frame_with_background_removed)
             self.gray = temp_detected_gray
             # self._detected_out_put = input_frame_with_background_removed
-        except AttributeError:
-            self.logger.error("something went wrong in self._draw_axes!")
+        except (AttributeError, ValueError) as error:
+            self.logger.error("something went wrong when Detector object recieved input_frame!: {}".format(error))
 
     def _draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
@@ -348,8 +351,12 @@ class Extractor:
         # detector hold: palms contour, frame_center, frame with drawn axes.
         self.detector = None
         self._detected_hand = None
+        self.palm_angle_in_degrees = None
         self.palm_center_point = None
-        self.middle_finger_edge = None
+        self.extLeft = None
+        self.extRight = None
+        self.extTop = None
+        self.extBot = None
         self.lk_params = dict(winSize=(15, 15),
                               maxLevel=2,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
@@ -361,9 +368,42 @@ class Extractor:
     @extract.setter
     def extract(self, detector):
         assert isinstance(detector, Detector), self.logger.error("input is not Detector object!")
-        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+        self.detector = detector
         self._detected_hand = detector._detected_out_put
-        self.middle_finger_edge = self._find_middle_finger_edge(detector.max_area_contour)
+
+        # Determine the most extreme points along the contour.
+        c = detector.max_area_contour
+        self.extLeft = tuple(c[c[:, :, 0].argmin()][0])
+        self.extRight = tuple(c[c[:, :, 0].argmax()][0])
+        self.extTop = tuple(c[c[:, :, 1].argmin()][0])
+        self.extBot = tuple(c[c[:, :, 1].argmax()][0])
+        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+
+        # todo: add if flags_handler.calibrated is True: self.tracker = Tracker(self points to track, input_frame)
+        # Calculate palms angle.
+        self._calculate_palm_angle()
+
+    def get_drawn_extreme_contour_points(self):
+        """Draw extreme contours points on a copy
+
+        draw the outline of the object, then draw each of the
+        extreme points, where the left-most is red, right-most
+        is green, top-most is blue, and bottom-most is teal
+
+        :returns image: image with drawn extreme contours point.
+        """
+
+        image = self._detected_hand
+
+        # todo: if calibrated is False: get extreme points, palm center point and palm rotation from input, else, get them from Tracker object
+        c = self.detector.max_area_contour
+        cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
+        cv2.circle(image, self.extLeft, 8, (0, 0, 255), -1)
+        cv2.circle(image, self.extRight, 8, (0, 255, 0), -1)
+        cv2.circle(image, self.extTop, 8, (255, 0, 0), -1)
+        cv2.circle(image, self.extBot, 8, (255, 255, 0), -1)
+        cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
+        return image
 
     def _hand_center_of_mass(self, hand_contour):
         """Find contours center of mass.  """
@@ -376,25 +416,45 @@ class Extractor:
 
         return cX, cY
 
-    def _find_middle_finger_edge(self, hand_contour):
-        """Function for calculating middle finger edge coordination.
-        :type hand_contour: collection.iter
-        """
-        desiredPoint = None
-        temp_y = self._detected_hand.shape[1]
-        for point in hand_contour:  # find highest point in contour, and track that point
-            if point[0][1] < temp_y:
-                temp_y = point[0][1]
+    def _calculate_palm_angle(self):
+        """Function for calculating palms angle.  """
 
-        return point[0][0], point[0][1]
+        angelPointHelper = [self.palm_center_point[0] + 10,
+                            self.palm_center_point[
+                                1]]  # helper to calculate angle between middle finger and center of palm
+
+        angle = self.simple_angle_calculator(self.extTop, angelPointHelper, self.palm_center_point)
+        self.palm_angle_in_degrees = np.rad2deg(angle)
+
+    def simple_angle_calculator(self, start, end, far):
+        """Simple angle calculator.
+
+        :returns angle: the angle in radians."""
+        a = np.math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+        b = np.math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
+        c = np.math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+        angle = np.math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
+        return angle
+
+
+class Tracker:
+    """Tracker recieves Extractor object, and track extracted points.  """
 
     def _calculate_optical_flow(self, old_gray, frame_gray, p0):
-        """
-            This function tracks the edge of the Middle finger
-            :param old_gray: old frame, gray scale
-            :param frame_gray: current frame
-            :param p0: previous point for tracking
-            :return: p0 - updated tracking point,
+        """This function tracks the edge of the Middle finger.
+
+       points for tracking:
+            expected_extLeft
+            expected_extRight
+            expected_extTop
+            expected_extBot
+            palm_center_point
+
+        :param old_gray: old frame, gray scale
+        :param frame_gray: current frame
+        :param p0: previous point for tracking
+        :return: p0 - updated tracking point,
+
         """
         # calculate optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
