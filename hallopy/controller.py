@@ -1,4 +1,6 @@
 """Multi class incapsulation implementation.  """
+import time
+
 import cv2
 import logging
 import numpy as np
@@ -31,6 +33,7 @@ class FlagsHandler:
         self.lifted = False
         self.quit_flag = False
         self.background_capture_required = True
+        self.in_home_center = False
         self.is_bg_captured = False
         self.calibrated = False
         self.hand_control = False
@@ -48,19 +51,17 @@ class FlagsHandler:
             # press ESC to exit
             print('!!!quiting!!!')  # todo: change to logger
             self.quit_flag = True
+
         elif input_from_key_board == 27:
             print('!!!cant quit without landing!!!')  # todo: change to logger
+
         elif input_from_key_board == ord('b'):
             # press 'b' to capture the background
+            self.calibrated = False
             self.background_capture_required = True
             self.is_bg_captured = True
             print('!!!Background Captured!!!')  # todo: change to logger
 
-        # elif k == ord('r'):  # press 'r' to reset the background
-        #     bgModel = None
-        #     triggerSwitch = False
-        #     isBgCaptured = 0
-        #     print('!!!Reset BackGround!!!')
         elif input_from_key_board == ord('t') and self.calibrated is True:
             """Take off"""
             print('!!!Take of!!!')  # todo: change to logger
@@ -69,6 +70,7 @@ class FlagsHandler:
                 # drone.takeoff()
                 # time.sleep(5)
             self.lifted = True
+
         elif input_from_key_board == ord('l'):
             """Land"""
             # old_frame_captured = False
@@ -78,6 +80,7 @@ class FlagsHandler:
             #     print('Wait 5 seconds')
             #     drone.land()
             #     time.sleep(5)
+
         elif input_from_key_board == ord('c'):
             """Control"""
             if self.hand_control is True:
@@ -89,6 +92,7 @@ class FlagsHandler:
                 self.hand_control = True
             else:
                 print("Drone not in the air, can't change control to hand")  # todo: change to logger
+
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
             self.make_threshold_thinner = True
@@ -96,6 +100,7 @@ class FlagsHandler:
             # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
             # if tempThreshold >= 0:
             #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+
         elif input_from_key_board == ord('x'):
             """ calibrating Threshold from keyboard """
             print("made threshold thicker")
@@ -203,9 +208,6 @@ class BackGroundRemover:
         self.logger = logging.getLogger('back_ground_remover_handler')
         self._cap_region_x_begin = 0.6
         self._cap_region_y_end = 0.6
-        # todo: Belong to detector
-        # self._threshold = 50
-        # self._blur_Value = 41
         self._bg_Sub_Threshold = 50
         self._learning_Rate = 0
         self._bg_model = None
@@ -291,7 +293,7 @@ class Detector:
             self.gray = temp_detected_gray
             # self._detected_out_put = input_frame_with_background_removed
         except (AttributeError, ValueError) as error:
-            self.logger.error("something went wrong when Detector object recieved input_frame!: {}".format(error))
+            self.logger.error("something went wrong when Detector object received input_frame!: {}".format(error))
 
     def _draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
@@ -341,25 +343,33 @@ class Extractor:
     saves its 'center_of_frame' and 'max_contour'.
     and perform the following calculations:
     1. calculate palm center of mass --> palms center coordination.
-    2. find middle finger coordination.
-    3. calculate palms rotation.
+    2. calculate distance between palms_center to frame_center.
+    3. find contour extreme points coordination.
+    4. calculate palms rotation.
     """
+    detector = ...  # type: Detector
 
     def __init__(self, flags_handler):
         self.logger = logging.getLogger('extractor_handler')
         self.flags_handler = flags_handler
         # detector hold: palms contour, frame_center, frame with drawn axes.
         self.detector = None
+        # tracker tracks extractor palm point after calibration, using optical_flow
+        self.tracker = None
+
         self._detected_hand = None
+        self.calib_radius = 15
+
+        self.calibration_time = 5
+        self.time_captured = None
+
+        self.palm_distance_to_frame = None
         self.palm_angle_in_degrees = None
         self.palm_center_point = None
-        self.extLeft = None
-        self.extRight = None
-        self.extTop = None
-        self.extBot = None
-        self.lk_params = dict(winSize=(15, 15),
-                              maxLevel=2,
-                              criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        self.ext_left = None
+        self.ext_right = None
+        self.ext_top = None
+        self.ext_bot = None
 
     @property
     def extract(self):
@@ -371,17 +381,37 @@ class Extractor:
         self.detector = detector
         self._detected_hand = detector._detected_out_put
 
-        # Determine the most extreme points along the contour.
-        c = detector.max_area_contour
-        self.extLeft = tuple(c[c[:, :, 0].argmin()][0])
-        self.extRight = tuple(c[c[:, :, 0].argmax()][0])
-        self.extTop = tuple(c[c[:, :, 1].argmin()][0])
-        self.extBot = tuple(c[c[:, :, 1].argmax()][0])
-        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+        if self.flags_handler.calibrated is False:
+            # Calculate palm center of mass --> palms center coordination.
+            self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+            # Determine the most extreme points along the contour.
+            c = detector.max_area_contour
+            self.ext_left = tuple(c[c[:, :, 0].argmin()][0])
+            self.ext_right = tuple(c[c[:, :, 0].argmax()][0])
+            self.ext_top = tuple(c[c[:, :, 1].argmin()][0])
+            self.ext_bot = tuple(c[c[:, :, 1].argmax()][0])
 
-        # todo: add if flags_handler.calibrated is True: self.tracker = Tracker(self points to track, input_frame)
+        elif self.flags_handler.calibrated is True:
+            self.logger.info("calibrated")
+            # todo: add if flags_handler.calibrated is True: self.tracker = Tracker(points to track, input_frame)
+            points_to_track = {"ext_left": self.ext_left, "ext_right": self.ext_right, "ext_top": self.ext_top,
+                               "ext_bot": self.ext_bot,
+                               "palm_canter_point": self.palm_center_point}
+            if self.tracker is None:
+                # Initiate tracker.
+                self.tracker = Tracker(self.flags_handler, points_to_track, self._detected_hand)
+
+            self.tracker.track(self._detected_hand)
+            self.palm_center_point = self.tracker.points_to_track['palm_center_point']
+            self.ext_left = self.tracker.points_to_track['ext_left']
+            self.ext_right = self.tracker.points_to_track['ext_right']
+            self.ext_top = self.tracker.points_to_track['ext_top']
+            self.ext_bot = self.tracker.points_to_track['ext_bot']
+
         # Calculate palms angle.
         self._calculate_palm_angle()
+        # Calculate distance between palms_center to frame_center.
+        self._calculate_palm_distance_from_center()
 
     def get_drawn_extreme_contour_points(self):
         """Draw extreme contours points on a copy
@@ -396,13 +426,22 @@ class Extractor:
         image = self._detected_hand
 
         # todo: if calibrated is False: get extreme points, palm center point and palm rotation from input, else, get them from Tracker object
+
         c = self.detector.max_area_contour
         cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
-        cv2.circle(image, self.extLeft, 8, (0, 0, 255), -1)
-        cv2.circle(image, self.extRight, 8, (0, 255, 0), -1)
-        cv2.circle(image, self.extTop, 8, (255, 0, 0), -1)
-        cv2.circle(image, self.extBot, 8, (255, 255, 0), -1)
+        cv2.circle(image, self.ext_left, 8, (0, 0, 255), -1)
+        cv2.circle(image, self.ext_right, 8, (0, 255, 0), -1)
+        cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
+        cv2.circle(image, self.ext_bot, 8, (255, 255, 0), -1)
         cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
+
+        if self.flags_handler.calibrated is True:
+            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=2)
+        elif self.flags_handler.in_home_center is True:
+            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=-1)
+        else:
+            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 0, 255), thickness=2)
+
         return image
 
     def _hand_center_of_mass(self, hand_contour):
@@ -423,37 +462,90 @@ class Extractor:
                             self.palm_center_point[
                                 1]]  # helper to calculate angle between middle finger and center of palm
 
-        angle = self.simple_angle_calculator(self.extTop, angelPointHelper, self.palm_center_point)
+        angle = self.simple_angle_calculator(self.ext_top, angelPointHelper, self.palm_center_point)
         self.palm_angle_in_degrees = np.rad2deg(angle)
 
     def simple_angle_calculator(self, start, end, far):
         """Simple angle calculator.
 
-        :returns angle: the angle in radians."""
+        :returns angle: the angle in radians.
+        """
+
         a = np.math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
         b = np.math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
         c = np.math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
         angle = np.math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
         return angle
 
+    def _calculate_palm_distance_from_center(self):
+        """Simple radius calculator.  """
+        frameCenter = self.detector.detected_out_put_center
+        cX, cY = self.palm_center_point
+
+        radius = np.math.sqrt((cX - frameCenter[0]) ** 2 + (
+                cY - frameCenter[1]) ** 2)
+
+        if radius <= self.calib_radius:
+            # Palm is centered with self._detected_frame.
+            if self.flags_handler.in_home_center is False:
+                # First time entering into calib_circle, start timer.
+                self.time_captured = time.time()
+                self.flags_handler.in_home_center = True
+
+            elif time.time() >= self.time_captured + self.calibration_time:
+                # if inside calib_circle more than self.calibration_time, then set calibrated to True.
+                self.flags_handler.calibrated = True
+        else:
+            self.flags_handler.in_home_center = False
+
 
 class Tracker:
-    """Tracker recieves Extractor object, and track extracted points.  """
+    """Tracker receives Extractor object, and track extracted points.  """
+
+    def __init__(self, flags_handler, points_to_track, input_image):
+        self.logger = logging.getLogger('tracker_handler')
+        self.flags_handler = flags_handler
+        self.points_to_track = points_to_track
+
+        self._input_image = input_image
+        self._old_gray = None
+        self._p0 = None
+
+        self.lk_params = dict(winSize=(15, 15),
+                              maxLevel=2,
+                              criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+        self.track(self._input_image)
+
+    def track(self, input_image):
+        if self._old_gray is None:
+            self._old_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+            # np.array(list(d.values())).astype(float)
+            self._p0 = np.array(list(self.points_to_track.values()), dtype=np.float32).reshape(-1, 1, 2)
+        # capture current frame
+        frame_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+        self._calculate_optical_flow(self._old_gray, frame_gray, self._p0)
+
+        # update tracking points.
+        self.points_to_track['palm_center_point'] = self._p0[0]
+        # self.points_to_track['ext_left'] = self._p0[1]
+        # self.points_to_track['ext_right']
+        # self.points_to_track['ext_top']
+        # self.points_to_track['ext_bot']
 
     def _calculate_optical_flow(self, old_gray, frame_gray, p0):
         """This function tracks the edge of the Middle finger.
 
        points for tracking:
-            expected_extLeft
-            expected_extRight
-            expected_extTop
-            expected_extBot
+            expected_ext_left
+            expected_ext_right
+            expected_ext_top
+            expected_ext_bot
             palm_center_point
 
         :param old_gray: old frame, gray scale
         :param frame_gray: current frame
-        :param p0: previous point for tracking
-        :return: p0 - updated tracking point,
+        :return: p0- updated tracking point,
 
         """
         # calculate optical flow
@@ -465,9 +557,11 @@ class Tracker:
             good_new = p1[st == 1]
 
         # Now update the previous frame and previous points
-        old_gray = frame_gray.copy()
-        p0 = good_new.reshape(-1, 1, 2)
-        return p0, old_gray
+        self._old_gray = frame_gray.copy()
+        self._p0 = good_new.reshape(-1, 1, 2)
+
+
+
 
 
 class Controller(Icontroller):

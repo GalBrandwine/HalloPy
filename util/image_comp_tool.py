@@ -1,7 +1,7 @@
 # import the necessary packages
 from skimage.measure import compare_ssim
+import numpy as np
 import cv2
-
 from hallopy import utils
 
 
@@ -83,12 +83,18 @@ class ImageTestTool:
         # Get the contours.
         expected_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(expected_gray, (41, 41), 0)
-        _, thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)
+        thresh = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.erode(thresh, None, iterations=2)
+        thresh = cv2.dilate(thresh, None, iterations=2)
         _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # Find the biggest area
-        max_area_contour = max(contours, key=cv2.contourArea)
-        return max_area_contour
+        try:
+            if len(contours) > 0:
+                max_area_contour = max(contours, key=cv2.contourArea)
+                return max_area_contour
+        except ValueError as error:
+            print(error)
 
     @staticmethod
     def get_contour_area(contour):
@@ -120,27 +126,35 @@ class ImageTestTool:
         return point[0][0], point[0][1]
 
     @staticmethod
-    def get_contour_extreme_points(contour, image=None, draw=False):
+    def get_contour_extreme_points(contour):
         c = contour
-        # determine the most extreme points along the contour
-        extLeft = tuple(c[c[:, :, 0].argmin()][0])
-        extRight = tuple(c[c[:, :, 0].argmax()][0])
-        extTop = tuple(c[c[:, :, 1].argmin()][0])
-        extBot = tuple(c[c[:, :, 1].argmax()][0])
-
-        if draw is True:
-            try:
-                # draw the outline of the object, then draw each of the
-                # extreme points, where the left-most is red, right-most
-                # is green, top-most is blue, and bottom-most is teal
-                cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
-                cv2.circle(image, extLeft, 8, (0, 0, 255), -1)
-                cv2.circle(image, extRight, 8, (0, 255, 0), -1)
-                cv2.circle(image, extTop, 8, (255, 0, 0), -1)
-                cv2.circle(image, extBot, 8, (255, 255, 0), -1)
-                cv2.imshow('contour_and_extreme_points', image)
-                cv2.waitKey()
-            except cv2.error as error:
-                print(error)
+        try:
+            # determine the most extreme points along the contour
+            extLeft = tuple(c[c[:, :, 0].argmin()][0])
+            extRight = tuple(c[c[:, :, 0].argmax()][0])
+            extTop = tuple(c[c[:, :, 1].argmin()][0])
+            extBot = tuple(c[c[:, :, 1].argmax()][0])
+        except TypeError as error:
+            extLeft = 0, 0
+            extRight = 0, 0
+            extTop = 0, 0
+            extBot = 0, 0
 
         return extLeft, extRight, extTop, extBot
+
+    @staticmethod
+    def draw_contours(image, contours):
+        cv2.drawContours(image, [contours], -1, (0, 255, 255), 2)
+
+    @staticmethod
+    def draw_tracking_points(image, points):
+
+        # draw the outline of the object, then draw each of the
+        # extreme points, where the left-most is red, right-most
+        # is green, top-most is blue, and bottom-most is teal
+        # if key == 'ext_left':
+        cv2.circle(image, points['ext_left'], 8, (0, 0, 255), -1)
+        cv2.circle(image, points['ext_right'], 8, (0, 255, 0), -1)
+        cv2.circle(image, points['ext_top'], 8, (255, 0, 0), -1)
+        cv2.circle(image, points['ext_bot'], 8, (255, 255, 0), -1)
+        cv2.circle(image, points['palm_canter_point'], 8, (255, 255, 255), thickness=-1)
