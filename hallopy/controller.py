@@ -515,19 +515,22 @@ class Tracker:
                               maxLevel=2,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-        self.track(self._input_image)
+        self.track(self.points_to_track, self._input_image)
 
-    def track(self, input_image):
+    def track(self, points_to_track, input_image):
         if self._old_gray is None:
             self._old_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
             # np.array(list(d.values())).astype(float)
-            self._p0 = np.array(list(self.points_to_track.values()), dtype=np.float32).reshape(-1, 1, 2)
+            points_reshaped = [list(elem) for elem in points_to_track]
+            print("points_to_track: {}".format(points_reshaped))
+            self._p0 = np.array(points_reshaped, dtype=np.float32).reshape(-1, 1, 2)
+
         # capture current frame
         frame_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         self._calculate_optical_flow(self._old_gray, frame_gray, self._p0)
 
         # update tracking points.
-        self.points_to_track['palm_center_point'] = self._p0[0]
+        self.points_to_track = self._p0
         # self.points_to_track['ext_left'] = self._p0[1]
         # self.points_to_track['ext_right']
         # self.points_to_track['ext_top']

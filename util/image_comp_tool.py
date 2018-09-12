@@ -152,9 +152,16 @@ class ImageTestTool:
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
-        # if key == 'ext_left':
-        cv2.circle(image, points['ext_left'], 8, (0, 0, 255), -1)
-        cv2.circle(image, points['ext_right'], 8, (0, 255, 0), -1)
-        cv2.circle(image, points['ext_top'], 8, (255, 0, 0), -1)
-        cv2.circle(image, points['ext_bot'], 8, (255, 255, 0), -1)
-        cv2.circle(image, points['palm_canter_point'], 8, (255, 255, 255), thickness=-1)
+        # determine the most extreme points along the contour
+        if points.size > 0:
+            c = points.reshape(-1, 1, 2)
+            ext_left = tuple(c[c[:, :, 0].argmin()][0])
+            ext_right = tuple(c[c[:, :, 0].argmax()][0])
+            ext_top = tuple(c[c[:, :, 1].argmin()][0])
+            ext_bot = tuple(c[c[:, :, 1].argmax()][0])
+            # palm_center = points[4]
+            cv2.circle(image, ext_left, 8, (0, 0, 255), -1)
+            cv2.circle(image, ext_right, 8, (0, 255, 0), -1)
+            cv2.circle(image, ext_top, 8, (255, 0, 0), -1)
+            cv2.circle(image, ext_bot, 8, (255, 255, 0), -1)
+            # cv2.circle(image, palm_center, 8, (255, 255, 255), thickness=-1)

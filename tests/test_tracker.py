@@ -40,26 +40,28 @@ class TestTracker:
             palm_center = ImageTestTool.get_center_of_mass(max_area_contour)
 
             """Stopped in test_tracker.
-            still figering out how to work with optical flow.
+            still figuring out how to work with optical flow.
             It seems im not updating the tracked point.
             I can see that in debug.
             """
+            # points = {"ext_left": extLeft, "ext_right": extRight, "ext_top": extTop, "ext_bot": extBot,
+            #               "palm_canter_point": bpalm_center}
 
             if tracker is None:
-                points = {"ext_left": extLeft, "ext_right": extRight, "ext_top": extTop, "ext_bot": extBot,
-                          "palm_canter_point": palm_center}
-                ImageTestTool.draw_tracking_points(back_ground_removed_clipped, points)
-                print("treacker is None: {}".format(points))
+                points = np.array([extLeft, extRight, extTop, extBot, palm_center])
+                # print("tracker is None: {}".format(points))
             else:
-                tracker.track(back_ground_removed_clipped)
-                points = {"ext_left": None, "ext_right": None, "ext_top": None, "ext_bot": None,
-                          "palm_canter_point": tracker.points_to_track['palm_canter_point']}
-                print(points)
-                ImageTestTool.draw_tracking_points(back_ground_removed_clipped, points)
+                points = max_area_contour
+                tracker.track(points, back_ground_removed_clipped)
+                points = tracker.points_to_track
+                # print(points)
 
+            ImageTestTool.draw_tracking_points(back_ground_removed_clipped, points)
             cv2.imshow('test_track', back_ground_removed_clipped)
             keyboard_input = cv2.waitKey(1)
             flags_handler.keyboard_input = keyboard_input
             # run
+            if flags_handler.background_capture_required is True:
+                tracker = None
             if keyboard_input == ord('t'):
                 tracker = Tracker(flags_handler, points, back_ground_removed_clipped)
