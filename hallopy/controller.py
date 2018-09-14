@@ -28,6 +28,7 @@ detector_logger.addHandler(ch)
 extractor_logger.addHandler(ch)
 controller_logger.addHandler(ch)
 
+
 class FlagsHandler:
     """Simple class for setting flags.  """
 
@@ -614,7 +615,6 @@ class Controller(Icontroller):
 
             self.flags_handler.keyboard_input = cv2.waitKey(1)
 
-        # todo: kill drone. and clean garbage.
         if self.drone is not None:
             self.drone.quit()
         camera.release()
@@ -704,10 +704,7 @@ class Controller(Icontroller):
                 # Landing requested.
                 self.drone.land()
         except TypeError as error:
-            # todo: log exception in logger.
-            # print(error)
-            pass
-
+            self.logger.error(error)
 
 
 if __name__ == '__main__':
