@@ -153,15 +153,23 @@ class ImageTestTool:
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
         # determine the most extreme points along the contour
+        c = points.reshape(-1, 1, 2)
         if points.size > 0:
-            c = points.reshape(-1, 1, 2)
-            ext_left = tuple(c[c[:, :, 0].argmin()][0])
-            ext_right = tuple(c[c[:, :, 0].argmax()][0])
+            # only ext_contour points have been given.
+            # ext_left = tuple(c[c[:, :, 0].argmin()][0])
+            # ext_right = tuple(c[c[:, :, 0].argmax()][0])
             ext_top = tuple(c[c[:, :, 1].argmin()][0])
             ext_bot = tuple(c[c[:, :, 1].argmax()][0])
             # palm_center = points[4]
-            cv2.circle(image, ext_left, 8, (0, 0, 255), -1)
-            cv2.circle(image, ext_right, 8, (0, 255, 0), -1)
+            # cv2.circle(image, ext_left, 8, (0, 0, 255), -1)
+            # cv2.putText(image,'ext_left',ext_left, cv2.FONT_HERSHEY_COMPLEX, .5, (0, 0, 255))
+
+            # cv2.circle(image, ext_right, 8, (0, 255, 0), -1)
+            # cv2.putText(image,'ext_right',ext_right, cv2.FONT_HERSHEY_COMPLEX, .5, (0, 255, 0))
+
             cv2.circle(image, ext_top, 8, (255, 0, 0), -1)
+            cv2.putText(image, 'ext_top', ext_top, cv2.FONT_HERSHEY_COMPLEX, .5, (255, 0, 0))
+
             cv2.circle(image, ext_bot, 8, (255, 255, 0), -1)
+            cv2.putText(image, 'ext_bot', ext_bot, cv2.FONT_HERSHEY_COMPLEX, .5, (255, 255, 0))
             # cv2.circle(image, palm_center, 8, (255, 255, 255), thickness=-1)

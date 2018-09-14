@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from hallopy import utils
 from hallopy.controller import FlagsHandler, Tracker
 from util.image_comp_tool import ImageTestTool
 
@@ -12,6 +11,7 @@ class TestTracker:
         """Test if tracker object tracks correctly after given set of points to track, and a frame."""
 
         # setup
+        cv2.namedWindow('test_track')
         flags_handler = FlagsHandler()
         tracker = None
 
@@ -39,24 +39,16 @@ class TestTracker:
             extLeft, extRight, extTop, extBot = ImageTestTool.get_contour_extreme_points(max_area_contour)
             palm_center = ImageTestTool.get_center_of_mass(max_area_contour)
 
-            """Stopped in test_tracker.
-            still figuring out how to work with optical flow.
-            It seems im not updating the tracked point.
-            I can see that in debug.
-            """
-            # points = {"ext_left": extLeft, "ext_right": extRight, "ext_top": extTop, "ext_bot": extBot,
-            #               "palm_canter_point": bpalm_center}
-
             if tracker is None:
-                points = np.array([extLeft, extRight, extTop, extBot, palm_center])
-                # print("tracker is None: {}".format(points))
+                points = np.array([extTop, palm_center])
+
             else:
-                points = max_area_contour
+                points = tracker.points_to_track
                 tracker.track(points, back_ground_removed_clipped)
                 points = tracker.points_to_track
-                # print(points)
 
             ImageTestTool.draw_tracking_points(back_ground_removed_clipped, points)
+            cv2.circle(back_ground_removed_clipped, palm_center, 8, (255, 255, 255), thickness=-1)
             cv2.imshow('test_track', back_ground_removed_clipped)
             keyboard_input = cv2.waitKey(1)
             flags_handler.keyboard_input = keyboard_input
@@ -65,3 +57,7 @@ class TestTracker:
                 tracker = None
             if keyboard_input == ord('t'):
                 tracker = Tracker(flags_handler, points, back_ground_removed_clipped)
+
+        # teardown
+        cap.release()
+        cv2.destroyAllWindows()

@@ -8,27 +8,31 @@ from HalloPy.hallopy.icontroller import Icontroller
 from hallopy import utils
 
 # Create loggers.
+flags_logger = logging.getLogger('flags_handler')
 frame_logger = logging.getLogger('frame_handler')
 face_processor_logger = logging.getLogger('face_processor_handler')
 back_ground_remover_logger = logging.getLogger('back_ground_remover_handler')
 detector_logger = logging.getLogger('detector_handler')
 extractor_logger = logging.getLogger('extractor_handler')
+controller_logger = logging.getLogger('controller_handler')
 ch = logging.StreamHandler()
 # create formatter and add it to the handlers.
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to loggers.
+flags_logger.addHandler(ch)
 frame_logger.addHandler(ch)
 face_processor_logger.addHandler(ch)
 back_ground_remover_logger.addHandler(ch)
 detector_logger.addHandler(ch)
 extractor_logger.addHandler(ch)
-
+controller_logger.addHandler(ch)
 
 class FlagsHandler:
     """Simple class for setting flags.  """
 
     def __init__(self):
+        self.logger = logging.getLogger('flags_handler')
         self._key_board_input = None
         self.lifted = False
         self.quit_flag = False
@@ -49,65 +53,51 @@ class FlagsHandler:
         """State machine.  """
         if input_from_key_board == 27 and self.lifted is False:
             # press ESC to exit
-            print('!!!quiting!!!')  # todo: change to logger
+            self.logger.info('!!!quiting!!!')
             self.quit_flag = True
 
         elif input_from_key_board == 27:
-            print('!!!cant quit without landing!!!')  # todo: change to logger
+            self.logger.info('!!!cant quit without landing!!!')
 
         elif input_from_key_board == ord('b'):
             # press 'b' to capture the background
             self.calibrated = False
             self.background_capture_required = True
             self.is_bg_captured = True
-            print('!!!Background Captured!!!')  # todo: change to logger
+            self.logger.info('!!!Background Captured!!!')
 
         elif input_from_key_board == ord('t') and self.calibrated is True:
             """Take off"""
-            print('!!!Take of!!!')  # todo: change to logger
+            self.logger.info('!!!Take of!!!')
             if self.lifted is False:
-                print('Wait 5 seconds')  # todo: change to logger
-                # drone.takeoff()
-                # time.sleep(5)
+                self.logger.info('Wait 5 seconds')
             self.lifted = True
 
         elif input_from_key_board == ord('l'):
             """Land"""
-            # old_frame_captured = False
             self.lifted = False
-            print('!!!Landing!!!')  # todo: change to logger
-            # if drone is not None:
-            #     print('Wait 5 seconds')
-            #     drone.land()
-            #     time.sleep(5)
+            self.logger.info('!!!Landing!!!')
 
         elif input_from_key_board == ord('c'):
             """Control"""
             if self.hand_control is True:
                 self.hand_control = False
-                # old_frame_captured = False
-                print("control switched to keyboard")  # todo: change to logger
+                self.logger.info("control switched to keyboard")
             elif self.lifted is True:
-                print("control switched to detected hand")  # todo: change to logger
+                self.logger.info("control switched to detected hand")
                 self.hand_control = True
             else:
-                print("Drone not in the air, can't change control to hand")  # todo: change to logger
+                self.logger.info("Drone not in the air, can't change control to hand")
 
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
             self.make_threshold_thinner = True
-            print("made threshold thinner")
-            # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') - 1
-            # if tempThreshold >= 0:
-            #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
+            self.logger.info("made threshold thinner")
 
         elif input_from_key_board == ord('x'):
             """ calibrating Threshold from keyboard """
-            print("made threshold thicker")
+            self.logger.info("made threshold thicker")
             self.make_threshold_thicker = True
-            # tempThreshold = cv2.getTrackbarPos('trh1', 'trackbar') + 1
-            # if tempThreshold <= 100:
-            #     cv2.setTrackbarPos('trh1', 'trackbar', tempThreshold)
 
 
 class FrameHandler:
@@ -127,6 +117,7 @@ class FrameHandler:
 
     @property
     def input_frame(self):
+        # Returns the input frame, with drawn ROI on it.
         return self._input_frame
 
     @input_frame.setter
@@ -145,8 +136,7 @@ class FrameHandler:
         self._draw_roi()
 
     def _draw_roi(self):
-        """Function for drawing the ROI on input frame"""
-
+        """Function for drawing the ROI on input frame.  """
         cv2.rectangle(self._input_frame, (int(self._cap_region_x_begin * self._input_frame.shape[1]) - 20, 0),
                       (self._input_frame.shape[1], int(self._cap_region_y_end * self._input_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
@@ -167,7 +157,7 @@ class FaceProcessor:
 
     @property
     def face_covered_frame(self):
-        """Return a face covered frame"""
+        """Return a face covered frame.  """
         return self._preprocessed_input_frame
 
     @face_covered_frame.setter
@@ -188,7 +178,6 @@ class FaceProcessor:
         # Preparation
         self._preprocessed_input_frame = input_frame_with_faces.copy()
         gray = cv2.cvtColor(self._preprocessed_input_frame, cv2.COLOR_BGR2GRAY)
-
         faces = self._face_detector.detectMultiScale(gray, 1.3, 5)
 
         # Black rectangle over faces to remove skin noises.
@@ -250,16 +239,18 @@ class Detector:
     def __init__(self, flags_handler):
         self.logger = logging.getLogger('detector_handler')
         self.flags_handler = flags_handler
-        self._input_frame_with_background_removed = None
         self._threshold = 50
         self._blur_Value = 41
         self.horiz_axe_offset = 60
-        self.gray = None
+
+        self._input_frame_with_background_removed = None
         self._detected_out_put = None
+        self.raw_input_frame = None
+
         # max_area_contour: the contour of the detected hand.
         self.max_area_contour = None
         # Detected_out_put_center: the center point of the ROI
-        self.detected_out_put_center = None
+        self.detected_out_put_center = (0, 0)
 
     @property
     def input_frame_for_feature_extraction(self):
@@ -270,6 +261,7 @@ class Detector:
         """Function for finding hand contour. """
         # Preparation
         # Update threshold
+        self.raw_input_frame = input_frame_with_background_removed
         if self.flags_handler.make_threshold_thinner is True and self._threshold >= 0:
             self.flags_handler.make_threshold_thinner = False
             self._threshold = self._threshold - 1
@@ -289,16 +281,16 @@ class Detector:
         try:
             # Find the biggest area.
             self.max_area_contour = max(contours, key=cv2.contourArea)
+            if self.max_area_contour is None:
+                self.max_area_contour = [[(0, 0)]]
             self.detected_out_put_center = self._draw_axes(input_frame_with_background_removed)
-            self.gray = temp_detected_gray
-            # self._detected_out_put = input_frame_with_background_removed
         except (AttributeError, ValueError) as error:
-            self.logger.error("something went wrong when Detector object received input_frame!: {}".format(error))
+            self.logger.debug("something went wrong when Detector object received input_frame!: {}".format(error))
 
     def _draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
 
-        Return detected_out_put_center (point): the center coord' of detected_out_put.
+        :return detected_out_put_center (point): the center coord' of detected_out_put.
         """
 
         # Preparation
@@ -352,6 +344,7 @@ class Extractor:
     def __init__(self, flags_handler):
         self.logger = logging.getLogger('extractor_handler')
         self.flags_handler = flags_handler
+
         # detector hold: palms contour, frame_center, frame with drawn axes.
         self.detector = None
         # tracker tracks extractor palm point after calibration, using optical_flow
@@ -360,16 +353,16 @@ class Extractor:
         self._detected_hand = None
         self.calib_radius = 15
 
-        self.calibration_time = 5
+        self.calibration_time = 2
         self.time_captured = None
 
-        self.palm_distance_to_frame = None
-        self.palm_angle_in_degrees = None
-        self.palm_center_point = None
-        self.ext_left = None
-        self.ext_right = None
-        self.ext_top = None
-        self.ext_bot = None
+        self.palm_angle_in_degrees = 0
+        self.palm_center_point = (0, 0)
+
+        self.ext_left = (0, 0)
+        self.ext_right = (0, 0)
+        self.ext_top = (0, 0)
+        self.ext_bot = (0, 0)
 
     @property
     def extract(self):
@@ -381,32 +374,37 @@ class Extractor:
         self.detector = detector
         self._detected_hand = detector._detected_out_put
 
+        # Calculate palm center of mass --> palms center coordination.
+        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
         if self.flags_handler.calibrated is False:
-            # Calculate palm center of mass --> palms center coordination.
-            self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
             # Determine the most extreme points along the contour.
-            c = detector.max_area_contour
-            self.ext_left = tuple(c[c[:, :, 0].argmin()][0])
-            self.ext_right = tuple(c[c[:, :, 0].argmax()][0])
-            self.ext_top = tuple(c[c[:, :, 1].argmin()][0])
-            self.ext_bot = tuple(c[c[:, :, 1].argmax()][0])
+            if detector.max_area_contour is not None:
+                c = detector.max_area_contour
+                self.ext_left = tuple(c[c[:, :, 0].argmin()][0])
+                self.ext_right = tuple(c[c[:, :, 0].argmax()][0])
+                self.ext_top = tuple(c[c[:, :, 1].argmin()][0])
+                self.ext_bot = tuple(c[c[:, :, 1].argmax()][0])
+
+            if self.tracker is not None:
+                self.tracker = None
 
         elif self.flags_handler.calibrated is True:
             self.logger.info("calibrated")
-            # todo: add if flags_handler.calibrated is True: self.tracker = Tracker(points to track, input_frame)
-            points_to_track = {"ext_left": self.ext_left, "ext_right": self.ext_right, "ext_top": self.ext_top,
-                               "ext_bot": self.ext_bot,
-                               "palm_canter_point": self.palm_center_point}
+
             if self.tracker is None:
                 # Initiate tracker.
-                self.tracker = Tracker(self.flags_handler, points_to_track, self._detected_hand)
+                points_to_track = [self.ext_left, self.ext_right, self.ext_bot, self.ext_top, self.palm_center_point]
+                self.tracker = Tracker(self.flags_handler, points_to_track, self.detector.raw_input_frame)
 
-            self.tracker.track(self._detected_hand)
-            self.palm_center_point = self.tracker.points_to_track['palm_center_point']
-            self.ext_left = self.tracker.points_to_track['ext_left']
-            self.ext_right = self.tracker.points_to_track['ext_right']
-            self.ext_top = self.tracker.points_to_track['ext_top']
-            self.ext_bot = self.tracker.points_to_track['ext_bot']
+            else:
+                points_to_track = self.tracker.points_to_track
+                self.tracker.track(points_to_track, self.detector.raw_input_frame)
+                points_to_draw = self.tracker.points_to_track
+                try:
+                    # Get only the contours middle-finger coordination.
+                    self.ext_top = tuple(points_to_draw[points_to_draw[:, :, 1].argmin()][0])
+                except ValueError:
+                    self.logger.debug("points_to_draw is empty")
 
         # Calculate palms angle.
         self._calculate_palm_angle()
@@ -422,27 +420,20 @@ class Extractor:
 
         :returns image: image with drawn extreme contours point.
         """
+        if self._detected_hand is not None:
+            image = self._detected_hand.copy()
 
-        image = self._detected_hand
+            cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
+            cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
 
-        # todo: if calibrated is False: get extreme points, palm center point and palm rotation from input, else, get them from Tracker object
+            if self.flags_handler.calibrated is True:
+                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=2)
+            elif self.flags_handler.in_home_center is True:
+                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=-1)
+            else:
+                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 0, 255), thickness=2)
 
-        c = self.detector.max_area_contour
-        cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
-        cv2.circle(image, self.ext_left, 8, (0, 0, 255), -1)
-        cv2.circle(image, self.ext_right, 8, (0, 255, 0), -1)
-        cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
-        cv2.circle(image, self.ext_bot, 8, (255, 255, 0), -1)
-        cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
-
-        if self.flags_handler.calibrated is True:
-            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=2)
-        elif self.flags_handler.in_home_center is True:
-            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=-1)
-        else:
-            cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 0, 255), thickness=2)
-
-        return image
+            return image
 
     def _hand_center_of_mass(self, hand_contour):
         """Find contours center of mass.  """
@@ -462,8 +453,11 @@ class Extractor:
                             self.palm_center_point[
                                 1]]  # helper to calculate angle between middle finger and center of palm
 
-        angle = self.simple_angle_calculator(self.ext_top, angelPointHelper, self.palm_center_point)
-        self.palm_angle_in_degrees = np.rad2deg(angle)
+        try:
+            angle = self.simple_angle_calculator(self.ext_top, angelPointHelper, self.palm_center_point)
+            self.palm_angle_in_degrees = np.rad2deg(angle)
+        except ZeroDivisionError:
+            pass
 
     def simple_angle_calculator(self, start, end, far):
         """Simple angle calculator.
@@ -493,7 +487,7 @@ class Extractor:
                 self.flags_handler.in_home_center = True
 
             elif time.time() >= self.time_captured + self.calibration_time:
-                # if inside calib_circle more than self.calibration_time, then set calibrated to True.
+                # If inside calib_circle more than self.calibration_time, then set calibrated to True.
                 self.flags_handler.calibrated = True
         else:
             self.flags_handler.in_home_center = False
@@ -520,21 +514,17 @@ class Tracker:
     def track(self, points_to_track, input_image):
         if self._old_gray is None:
             self._old_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
-            # np.array(list(d.values())).astype(float)
-            points_reshaped = [list(elem) for elem in points_to_track]
-            print("points_to_track: {}".format(points_reshaped))
-            self._p0 = np.array(points_reshaped, dtype=np.float32).reshape(-1, 1, 2)
 
-        # capture current frame
+        points_reshaped = [list(elem) for elem in points_to_track]
+        self.logger.debug("points_to_track: {}".format(points_reshaped))
+        self._p0 = np.array(points_reshaped, dtype=np.float32).reshape(-1, 1, 2)
+
+        # Capture current frame.
         frame_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         self._calculate_optical_flow(self._old_gray, frame_gray, self._p0)
 
-        # update tracking points.
+        # Update tracking points.
         self.points_to_track = self._p0
-        # self.points_to_track['ext_left'] = self._p0[1]
-        # self.points_to_track['ext_right']
-        # self.points_to_track['ext_top']
-        # self.points_to_track['ext_bot']
 
     def _calculate_optical_flow(self, old_gray, frame_gray, p0):
         """This function tracks the edge of the Middle finger.
@@ -551,20 +541,16 @@ class Tracker:
         :return: p0- updated tracking point,
 
         """
-        # calculate optical flow
+        # Calculate optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
         if p1 is None:
-            # conf.old_frame_captured = False
             good_new = p0[st == 1]
         else:
             good_new = p1[st == 1]
 
-        # Now update the previous frame and previous points
+        # Now update the previous frame and previous points.
         self._old_gray = frame_gray.copy()
         self._p0 = good_new.reshape(-1, 1, 2)
-
-
-
 
 
 class Controller(Icontroller):
@@ -573,8 +559,9 @@ class Controller(Icontroller):
     :param icontroller.Icontroller: implemented interface
     """
 
-    def __init__(self):
+    def __init__(self, drone=None):
         """Init a controller object.  """
+        self.logger = logging.getLogger('controller_handler')
         self.move_up = 0
         self.move_left = 0
         self.move_right = 0
@@ -584,11 +571,16 @@ class Controller(Icontroller):
         self.rotate_left = 0
         self.rotate_right = 0
 
-        # Initiate inner objects
+        # Initiate inner objects.
         self.flags_handler = FlagsHandler()
         self.frame_handler = FrameHandler()
         self.face_processor = FaceProcessor()
         self.back_ground_remover = BackGroundRemover(self.flags_handler)
+        self.detector = Detector(self.flags_handler)
+        self.extractor = Extractor(self.flags_handler)
+
+        # Get initiated drone object
+        self.drone = drone
 
     def start(self):
         """Function for starting image pipe processing.  """
@@ -596,9 +588,35 @@ class Controller(Icontroller):
         cv2.namedWindow('Controller')
         while self.flags_handler.quit_flag is False:
             ret, frame = camera.read()
-            cv2.imshow('Controller', frame)
+
+            # Controller processing pipe:
+            # 1. Draw ROI on frame.
+            self.frame_handler.input_frame = frame
+            # 2. Cover faces, to remove detection noises.
+            self.face_processor.face_covered_frame = self.frame_handler.input_frame
+            # 3. Remove background from a covered-faces-frame.
+            self.back_ground_remover.detected_frame = self.face_processor.face_covered_frame
+            # 4. Detect a hand.
+            self.detector.input_frame_for_feature_extraction = self.back_ground_remover.detected_frame
+            # 5. Extract features, and track detected hand
+            self.extractor.extract = self.detector
+
+            inner_image = self.extractor.get_drawn_extreme_contour_points()
+            if inner_image is not None:
+                # Draw detected hand on outer image.
+                outer_image = self.frame_handler.input_frame
+                outer_image[0: inner_image.shape[0],
+                outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
+                cv2.imshow('Controller', outer_image)
+
+                if self.flags_handler.lifted is True:
+                    self.get_drone_commands()
+
             self.flags_handler.keyboard_input = cv2.waitKey(1)
 
+        # todo: kill drone. and clean garbage.
+        if self.drone is not None:
+            self.drone.quit()
         camera.release()
         cv2.destroyWindow('Controller')
 
@@ -616,6 +634,8 @@ class Controller(Icontroller):
 
     def get_left_param(self):
         """Return left parameter (int between 0..100). """
+        temp_move_left = self.detector.detected_out_put_center[0] - self.extractor.palm_center_point[0]
+        self.move_left = temp_move_left
         if self.move_left < 0:
             return 0
         return self.move_left if self.move_left <= 100 else 100
@@ -649,6 +669,45 @@ class Controller(Icontroller):
         if self.move_backward < 0:
             return 0
         return self.move_backward if self.move_backward <= 100 else 100
+
+    def get_drone_commands(self):
+        try:
+            # Send commands to drone
+            if self.flags_handler.hand_control is False:
+                # Make drone hover.
+                self.drone.left(0)
+                self.drone.right(0)
+                self.drone.up(0)
+                self.drone.down(0)
+                self.drone.counter_clockwise(0)
+                self.drone.clockwise(0)
+                self.drone.forward(0)
+                self.drone.backward(0)
+            elif self.flags_handler.hand_control is False:
+                # Send drone commands.
+                if self.flags_handler.in_home_center is False:
+                    # Send right_X and right_Y movements only when out of safety circle.
+                    left = self.get_left_param()
+                    self.drone.left(left)
+                    self.drone.right(0)
+                    self.drone.up(0)
+                    self.drone.down(0)
+
+                self.drone.counter_clockwise(0)
+                self.drone.clockwise(0)
+                self.drone.forward(0)
+                self.drone.backward(0)
+            elif self.flags_handler.lifted is True:
+                # Takeoff requested.
+                self.drone.takeoff()
+            elif self.flags_handler.lifted is False:
+                # Landing requested.
+                self.drone.land()
+        except TypeError as error:
+            # todo: log exception in logger.
+            # print(error)
+            pass
+
 
 
 if __name__ == '__main__':

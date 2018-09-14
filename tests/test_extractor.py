@@ -189,13 +189,3 @@ class TestExtractor:
             image = extractor.get_drawn_extreme_contour_points()
             cv2.imshow('test_contour_extreme_point_tracking', image)
             flags_handler.keyboard_input = cv2.waitKey(1)
-
-    """Test if optical flow track correctly 5 points os interest.
-
-    points for tracking:
-        expected_extLeft
-        expected_extRight
-        expected_extTop
-        expected_extBot
-        palm_center_point
-    """

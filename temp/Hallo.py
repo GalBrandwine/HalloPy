@@ -237,8 +237,8 @@ def exctractDroneCommands(palmCenter, middleFingerEdge, frameCenter, img,
 
 def handler(event, sender, data, **args):
     droneHndler = sender
-    # if event is droneHndler.EVENT_FLIGHT_DATA:
-    #     print(data)
+    if event is droneHndler.EVENT_FLIGHT_DATA:
+        print(data)
 
 
 """Tello connection initiation"""
