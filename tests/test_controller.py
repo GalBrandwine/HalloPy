@@ -450,3 +450,113 @@ class TestController:
 
         camera.release()
         cv2.destroyWindow('Controller')
+
+    def test_move_backward(self):
+        """Test if drone moves backward properly.
+
+        this test test if controller.move_backward is corresponding to detected hand movements.
+        """
+
+        # setup
+        controller = Controller()
+        controller.logger.setLevel('DEBUG')
+
+        # run
+        camera = cv2.VideoCapture(0)
+        cv2.namedWindow('Controller')
+        while controller.flags_handler.quit_flag is False:
+            ret, frame = camera.read()
+
+            # A good practice is to mock all this processing in pipe.
+            # Controller processing pipe:
+            # 1. Draw ROI on frame.
+            controller.frame_handler.input_frame = frame
+            # 2. Cover faces, to remove detection noises.
+            controller.face_processor.face_covered_frame = controller.frame_handler.input_frame
+            # 3. Remove background from a covered-faces-frame.
+            controller.back_ground_remover.detected_frame = controller.face_processor.face_covered_frame
+            # 4. Detect a hand.
+            controller.detector.input_frame_for_feature_extraction = controller.back_ground_remover.detected_frame
+            # 5. Extract features, and track detected hand
+            controller.extractor.extract = controller.detector
+
+            inner_image = controller.extractor.get_drawn_extreme_contour_points()
+            if inner_image is not None:
+                # Draw detected hand on outer image.
+                outer_image = controller.frame_handler.input_frame
+                outer_image[0: inner_image.shape[0],
+                outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
+                cv2.imshow('Controller', outer_image)
+
+                # Testing.
+                move_backward = controller.get_backward_param()
+                controller.logger.debug("move_backward: {}".format(move_backward))
+                if move_backward < 0:
+                    assert False
+                    break
+                elif move_backward > 100:
+                    assert False
+                    break
+
+            controller.flags_handler.keyboard_input = cv2.waitKey(1)
+
+        camera.release()
+        cv2.destroyWindow('Controller')
+
+    def test_all_movements(self):
+        """Test if drone moves properly.
+
+        this test test if controller is corresponding to detected hand movements.
+        """
+
+        # setup
+        controller = Controller()
+        controller.logger.setLevel('DEBUG')
+
+        # run
+        camera = cv2.VideoCapture(0)
+        cv2.namedWindow('Controller')
+        while controller.flags_handler.quit_flag is False:
+            ret, frame = camera.read()
+
+            # A good practice is to mock all this processing in pipe.
+            # Controller processing pipe:
+            # 1. Draw ROI on frame.
+            controller.frame_handler.input_frame = frame
+            # 2. Cover faces, to remove detection noises.
+            controller.face_processor.face_covered_frame = controller.frame_handler.input_frame
+            # 3. Remove background from a covered-faces-frame.
+            controller.back_ground_remover.detected_frame = controller.face_processor.face_covered_frame
+            # 4. Detect a hand.
+            controller.detector.input_frame_for_feature_extraction = controller.back_ground_remover.detected_frame
+            # 5. Extract features, and track detected hand
+            controller.extractor.extract = controller.detector
+
+            inner_image = controller.extractor.get_drawn_extreme_contour_points()
+            if inner_image is not None:
+                # Draw detected hand on outer image.
+                outer_image = controller.frame_handler.input_frame
+                outer_image[0: inner_image.shape[0],
+                outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
+                cv2.imshow('Controller', outer_image)
+
+                # Testing.
+                controller.flags_handler.hand_control = True
+                controller.get_drone_commands()
+                rotate_right = controller.rotate_right
+                rotate_left = controller.rotate_left
+                move_right = controller.move_right
+                move_left = controller.move_left
+                move_down = controller.move_down
+                move_up = controller.move_up
+                move_forward = controller.move_forward
+                move_backward = controller.move_backward
+                controller.logger.debug(
+                    "move_backward: {}, move_forward: {}, move_up: {}, move_down: {}, move_left: {}, move_right: {}, rotate_left: {}, rotate_right: {}".format(
+                        move_backward, move_forward, move_up, move_down, move_left, move_right, rotate_left,
+                        rotate_right))
+
+            controller.flags_handler.keyboard_input = cv2.waitKey(1)
+
+        camera.release()
+        cv2.destroyWindow('Controller')

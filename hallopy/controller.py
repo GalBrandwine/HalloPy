@@ -36,6 +36,8 @@ class FlagsHandler:
         self.logger = logging.getLogger('flags_handler')
         self._key_board_input = None
         self.lifted = False
+        self.takeoff_requested = False
+        self.landing_requested = False
         self.quit_flag = False
         self.background_capture_required = True
         self.in_home_center = False
@@ -70,13 +72,13 @@ class FlagsHandler:
         elif input_from_key_board == ord('t') and self.calibrated is True:
             """Take off"""
             self.logger.info('!!!Take of!!!')
-            if self.lifted is False:
-                self.logger.info('Wait 5 seconds')
             self.lifted = True
+            self.takeoff_requested = True
 
         elif input_from_key_board == ord('l'):
             """Land"""
             self.lifted = False
+            self.landing_requested = True
             self.logger.info('!!!Landing!!!')
 
         elif input_from_key_board == ord('c'):
@@ -353,7 +355,7 @@ class Extractor:
         self.tracker = None
 
         self._detected_hand = None
-        self.calib_radius = 15
+        self.calib_radius = 10
 
         self.calibration_time = 2
         self.time_captured = None
@@ -655,8 +657,7 @@ class Controller(Icontroller):
                 outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
                 cv2.imshow('Controller', outer_image)
 
-                if self.flags_handler.lifted is True:
-                    self.get_drone_commands()
+                self.get_drone_commands()
 
             self.flags_handler.keyboard_input = cv2.waitKey(1)
 
@@ -715,14 +716,16 @@ class Controller(Icontroller):
 
     def get_forward_param(self):
         """Return move forward parameter (int between 0..100). """
-        temp_max_distance = self.extractor.max_distance_from_ext_top_point_to_palm_center
-
+        temp_forward_param = self.extractor.ext_top[1] - self.extractor.zero_point[1]
+        self.move_forward = temp_forward_param
         if self.move_forward < 0:
             return 0
         return self.move_forward if self.move_forward <= 100 else 100
 
     def get_backward_param(self):
         """Return move backward parameter (int between 0..100). """
+        temp_backward_param = self.extractor.zero_point[1] - self.extractor.ext_top[1]
+        self.move_backward = temp_backward_param
         if self.move_backward < 0:
             return 0
         return self.move_backward if self.move_backward <= 100 else 100
@@ -740,27 +743,47 @@ class Controller(Icontroller):
                 self.drone.clockwise(0)
                 self.drone.forward(0)
                 self.drone.backward(0)
-            elif self.flags_handler.hand_control is False:
+            elif self.flags_handler.hand_control is True:
                 # Send drone commands.
                 if self.flags_handler.in_home_center is False:
                     # Send right_X and right_Y movements only when out of safety circle.
                     left = self.get_left_param()
-                    self.drone.left(left)
+                    if left != 0:
+                        self.drone.left(left)
                     right = self.get_right_param()
-                    self.drone.right(right)
-                    self.drone.up(0)
-                    self.drone.down(0)
+                    if right != 0:
+                        self.drone.right(right)
+                    up = self.get_up_param()
+                    if up != 0:
+                        self.drone.up(up)
+                    down = self.get_down_param()
+                    if down != 0:
+                        self.drone.down(down)
 
-                self.drone.counter_clockwise(0)
-                self.drone.clockwise(0)
-                self.drone.forward(0)
-                self.drone.backward(0)
-            elif self.flags_handler.lifted is True:
+                counter_clockwise = self.get_rotate_left_param()
+                if counter_clockwise != 0:
+                    self.drone.counter_clockwise(counter_clockwise)
+                clockwise = self.get_rotate_right_param()
+                if clockwise != 0:
+                    self.drone.clockwise(clockwise)
+
+                forward = self.get_forward_param()
+                if forward != 0:
+                    self.drone.forward(forward)
+                backward = self.get_backward_param()
+                if backward != 0:
+                    self.drone.backward(backward)
+
+            if self.flags_handler.takeoff_requested is True:
                 # Takeoff requested.
                 self.drone.takeoff()
-            elif self.flags_handler.lifted is False:
+                time.sleep(3)
+                self.flags_handler.takeoff_requested = False
+            elif self.flags_handler.landing_requested is True:
                 # Landing requested.
                 self.drone.land()
+                time.sleep(3)
+                self.flags_handler.landing_requested = False
         except TypeError as error:
             self.logger.error(error)
 
