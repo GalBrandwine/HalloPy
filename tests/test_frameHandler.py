@@ -13,7 +13,7 @@ class TestFrameHandler:
         """Test if input frame preprocessed correctly.  """
 
         # setup
-        test_path = utils.get_full_path('docs/face_and_hand.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/face_and_hand.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed,
         # inside frame_handler, a frame is supposed to be received from web-cam, hence it is flipped after receiving it.

@@ -11,7 +11,7 @@ class TestDetector:
     def test_find_largest_contours(self):
         """Test if largest contours is found.  """
         # setup
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -33,7 +33,7 @@ class TestDetector:
         """Test if detected_out_put_center calculated properly.  """
         # setup
 
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -57,7 +57,7 @@ class TestDetector:
         # Input from camera.
         cv2.namedWindow('test_draw_contour')
 
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)

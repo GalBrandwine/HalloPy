@@ -13,9 +13,9 @@ class TestBackGroundRemover:
     def test_detected_frame(self):
         """Test if input frames background is being removed correctly.  """
         # setup
-        expected_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        expected_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         expected = cv2.imread(expected_path)
-        test_path = utils.get_full_path('docs/face_and_hand_0.avi')
+        test_path = utils.get_full_path('docs/material_for_testing/face_and_hand_0.avi')
         cap = cv2.VideoCapture(test_path)
         flags_handler = FlagsHandler()
         back_ground_remover = BackGroundRemover(flags_handler)

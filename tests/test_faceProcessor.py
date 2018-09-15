@@ -11,7 +11,7 @@ class TestFaceProcessor:
     def test_face_covered_frame(self):
         """Test if faces are detected and covered.  """
         # setup
-        test_path = utils.get_full_path('docs/face_and_hand.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/face_and_hand.jpg')
         test_image = cv2.imread(test_path)
 
         expected = test_image.copy()

@@ -11,9 +11,10 @@ class TestExtractor:
     def test_extract_center_of_mass(self):
         """Test if extract find center of mass.  """
         # setup
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
-        expected_path = utils.get_full_path('docs/back_ground_removed_and_center_of_mass_discovered.jpg')
+        expected_path = utils.get_full_path(
+            'docs/material_for_testing/back_ground_removed_and_center_of_mass_discovered.jpg')
         expected_image = cv2.imread(expected_path)
         # Because image loaded from local, and not received from web-cam, a flip is needed.
         test_image = cv2.flip(test_image, 1)
@@ -35,7 +36,7 @@ class TestExtractor:
     def test_get_contour_extreme_point(self):
         """Test if middle finger edge was found correctly.  """
         # setup
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
 
         max_area_contour = ImageTestTool.get_max_area_contour(test_image)
@@ -59,7 +60,7 @@ class TestExtractor:
     def test_contour_extreme_point_tracking(self):
         """Test for tracking extreme_points without optical flow (e.g until calibrated).  """
         # setup
-        test_path = utils.get_full_path('docs/back_ground_removed_frame.jpg')
+        test_path = utils.get_full_path('docs/material_for_testing/back_ground_removed_frame.jpg')
         test_image = cv2.imread(test_path)
 
         # todo: use mockito here to mock preprocessing elements
