@@ -1,4 +1,4 @@
-"""hallopy scrip is an example how to use the Hand_recognition_controller.  """
+"""hallopy script is an example how to use the Hand_recognition_controller.  """
 import tellopy
 from hallopy.controller import Controller
 
