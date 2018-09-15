@@ -189,3 +189,84 @@ class TestExtractor:
             image = extractor.get_drawn_extreme_contour_points()
             cv2.imshow('test_contour_extreme_point_tracking', image)
             flags_handler.keyboard_input = cv2.waitKey(1)
+
+    def test_max_distance_between_top_ext_point_and_palm_center_point(self):
+        """Test if max distance is found correctly. """
+        # setup
+        # todo: use mockito here to mock preprocessing elements
+        flags_handler = FlagsHandler()
+        detector = Detector(flags_handler)
+        extractor = Extractor(flags_handler)
+
+        # Background model preparations.
+        bg_model = cv2.createBackgroundSubtractorMOG2(0, 50)
+
+        cap = cv2.VideoCapture(0)
+        while flags_handler.quit_flag is False:
+            ret, frame = cap.read()
+            frame = cv2.flip(frame, 1)
+
+            # Remove background from input frame.
+            fgmask = bg_model.apply(frame, learningRate=0)
+            kernel = np.ones((3, 3), np.uint8)
+            fgmask = cv2.erode(fgmask, kernel, iterations=1)
+            res = cv2.bitwise_and(frame, frame, mask=fgmask)
+
+            # Clip frames ROI.
+            back_ground_removed_clipped = ImageTestTool.clip_roi(res,
+                                                                 {'cap_region_x_begin': 0.6, 'cap_region_y_end': 0.6})
+
+            if flags_handler.background_capture_required is True:
+                bg_model = cv2.createBackgroundSubtractorMOG2(0, 50)
+                flags_handler.background_capture_required = False
+
+            detector.input_frame_for_feature_extraction = back_ground_removed_clipped
+            extractor.extract = detector
+
+            # run
+            image = extractor.get_drawn_extreme_contour_points()
+            cv2.line(image, extractor.palm_center_point, (extractor.ext_top[0], extractor.palm_center_point[
+                1] - extractor.max_distance_from_ext_top_point_to_palm_center), (255, 255, 255), thickness=2)
+            cv2.imshow('test_max_distance_between_top_ext_point_and_palm_center_point', image)
+            flags_handler.keyboard_input = cv2.waitKey(1)
+
+    def test_drawn_correctly(self):
+        """Test if zero point is drawn correctly.
+
+        zero point is the point that responsible for forward/backward commands extraction.
+        """
+        # setup
+        # todo: use mockito here to mock preprocessing elements
+        flags_handler = FlagsHandler()
+        detector = Detector(flags_handler)
+        extractor = Extractor(flags_handler)
+
+        # Background model preparations.
+        bg_model = cv2.createBackgroundSubtractorMOG2(0, 50)
+
+        cap = cv2.VideoCapture(0)
+        while flags_handler.quit_flag is False:
+            ret, frame = cap.read()
+            frame = cv2.flip(frame, 1)
+
+            # Remove background from input frame.
+            fgmask = bg_model.apply(frame, learningRate=0)
+            kernel = np.ones((3, 3), np.uint8)
+            fgmask = cv2.erode(fgmask, kernel, iterations=1)
+            res = cv2.bitwise_and(frame, frame, mask=fgmask)
+
+            # Clip frames ROI.
+            back_ground_removed_clipped = ImageTestTool.clip_roi(res,
+                                                                 {'cap_region_x_begin': 0.6, 'cap_region_y_end': 0.6})
+
+            if flags_handler.background_capture_required is True:
+                bg_model = cv2.createBackgroundSubtractorMOG2(0, 50)
+                flags_handler.background_capture_required = False
+
+            detector.input_frame_for_feature_extraction = back_ground_removed_clipped
+            extractor.extract = detector
+
+            # run
+            image = extractor.get_drawn_extreme_contour_points()
+            cv2.imshow('test_drawn_correctly', image)
+            flags_handler.keyboard_input = cv2.waitKey(1)

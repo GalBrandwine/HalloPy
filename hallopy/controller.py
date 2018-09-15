@@ -339,6 +339,7 @@ class Extractor:
     2. calculate distance between palms_center to frame_center.
     3. find contour extreme points coordination.
     4. calculate palms rotation.
+    5. calculate top_ext_contour-palm_center max distance.
     """
     detector = ...  # type: Detector
 
@@ -359,6 +360,12 @@ class Extractor:
 
         self.palm_angle_in_degrees = 0
         self.palm_center_point = (0, 0)
+        self.max_distance_from_ext_top_point_to_palm_center = 0
+
+        self.forward_backward_movement_delta = 30
+        self.zero_point = (0, 0)
+        self.forward_point = (0, 0)
+        self.backward_point = (0, 0)
 
         self.ext_left = (0, 0)
         self.ext_right = (0, 0)
@@ -374,10 +381,11 @@ class Extractor:
         assert isinstance(detector, Detector), self.logger.error("input is not Detector object!")
         self.detector = detector
         self._detected_hand = detector._detected_out_put
-
         # Calculate palm center of mass --> palms center coordination.
         self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+
         if self.flags_handler.calibrated is False:
+            self.logger.info("calibrating...")
             # Determine the most extreme points along the contour.
             if detector.max_area_contour is not None:
                 c = detector.max_area_contour
@@ -386,11 +394,19 @@ class Extractor:
                 self.ext_top = tuple(c[c[:, :, 1].argmin()][0])
                 self.ext_bot = tuple(c[c[:, :, 1].argmax()][0])
 
+                # Get max distance.
+                if self.ext_top[1] == 0:
+                    self.max_distance_from_ext_top_point_to_palm_center = 0
+                else:
+                    temp_distance = self.palm_center_point[1] - self.ext_top[1]
+                    if temp_distance > self.max_distance_from_ext_top_point_to_palm_center:
+                        self.max_distance_from_ext_top_point_to_palm_center = temp_distance
+
             if self.tracker is not None:
                 self.tracker = None
 
         elif self.flags_handler.calibrated is True:
-            self.logger.info("calibrated")
+            self.logger.info("calibrated!")
 
             if self.tracker is None:
                 # Initiate tracker.
@@ -398,6 +414,7 @@ class Extractor:
                 self.tracker = Tracker(self.flags_handler, points_to_track, self.detector.raw_input_frame)
 
             else:
+                # Use tracker to track.
                 points_to_track = self.tracker.points_to_track
                 self.tracker.track(points_to_track, self.detector.raw_input_frame)
                 points_to_draw = self.tracker.points_to_track
@@ -406,7 +423,6 @@ class Extractor:
                     self.ext_top = tuple(points_to_draw[points_to_draw[:, :, 1].argmin()][0])
                 except ValueError:
                     self.logger.debug("points_to_draw is empty")
-
         # Calculate palms angle.
         self._calculate_palm_angle()
         # Calculate distance between palms_center to frame_center.
@@ -424,9 +440,6 @@ class Extractor:
         if self._detected_hand is not None:
             image = self._detected_hand.copy()
 
-            cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
-            cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
-
             if self.flags_handler.calibrated is True:
                 cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=2)
             elif self.flags_handler.in_home_center is True:
@@ -434,7 +447,39 @@ class Extractor:
             else:
                 cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 0, 255), thickness=2)
 
+            self._draw_forward_backward_line(image)
+            self._draw_palm_rotation(image)
+
+            cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
+            cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
+
             return image
+
+    def _draw_forward_backward_line(self, image):
+        """Draw forward/backward line.  """
+        temp_delta = int(
+            self.max_distance_from_ext_top_point_to_palm_center - self.max_distance_from_ext_top_point_to_palm_center / 5)
+        self.zero_point = (self.ext_top[0], self.palm_center_point[1] - temp_delta)
+        self.forward_backward_movement_delta = int(self.max_distance_from_ext_top_point_to_palm_center / 3)
+        self.forward_point = (self.zero_point[0], self.zero_point[1] + self.forward_backward_movement_delta)
+        self.backward_point = (self.zero_point[0], self.zero_point[1] - self.forward_backward_movement_delta)
+        cv2.line(image, self.forward_point, self.zero_point, (0, 255, 0), thickness=5)
+        cv2.line(image, self.zero_point, self.backward_point, (0, 0, 255), thickness=5)
+
+    def _draw_palm_rotation(self, image):
+        """To draw the ellipse, we need to pass several arguments.
+
+        One argument is the center location (x,y).
+        Next argument is axes lengths (major axis length, minor axis length).
+        angle is the angle of rotation of ellipse in anti-clockwise direction.
+        startAngle and endAngle denotes the starting and ending of ellipse arc measured in clockwise direction from major axis.
+        i.e. giving values 0 and 360 gives the full ellipse. For more details, check the documentation of cv2.ellipse().
+        """
+        center_location = self.palm_center_point
+        axis_length = int(self.max_distance_from_ext_top_point_to_palm_center)
+        starting_angle = 270
+        end_angle = 270 + (90 - self.palm_angle_in_degrees)
+        cv2.ellipse(image, center_location, (axis_length, axis_length), 0, starting_angle, end_angle, (255, 0, 255), 3)
 
     def _hand_center_of_mass(self, hand_contour):
         """Find contours center of mass.  """
@@ -622,12 +667,16 @@ class Controller(Icontroller):
 
     def get_up_param(self):
         """Return up parameter (int between 0..100). """
+        temp_move_up = self.detector.detected_out_put_center[1] - self.extractor.palm_center_point[1]
+        self.move_up = temp_move_up
         if self.move_up <= 0:
             return 0
         return self.move_up if self.move_up <= 100 else 100
 
     def get_down_param(self):
         """Return down parameter (int between 0..100). """
+        temp_move_down = self.extractor.palm_center_point[1] - self.detector.detected_out_put_center[1]
+        self.move_down = temp_move_down
         if self.move_down < 0:
             return 0
         return self.move_down if self.move_down <= 100 else 100
@@ -642,24 +691,32 @@ class Controller(Icontroller):
 
     def get_right_param(self):
         """Return right parameter (int between 0..100). """
+        temp_move_right = self.extractor.palm_center_point[0] - self.detector.detected_out_put_center[0]
+        self.move_right = temp_move_right
         if self.move_right < 0:
             return 0
         return self.move_right if self.move_right <= 100 else 100
 
     def get_rotate_left_param(self):
         """Return rotate left parameter (int between 0..100). """
+        temp_rotate_left = self.extractor.palm_angle_in_degrees - 90
+        self.rotate_left = temp_rotate_left
         if self.rotate_left < 0:
             return 0
         return self.rotate_left if self.rotate_left <= 100 else 100
 
     def get_rotate_right_param(self):
         """Return rotate right parameter (int between 0..100). """
+        temp_rotate_right = 90 - self.extractor.palm_angle_in_degrees
+        self.rotate_right = temp_rotate_right
         if self.rotate_right < 0:
             return 0
         return self.rotate_right if self.rotate_right <= 100 else 100
 
     def get_forward_param(self):
         """Return move forward parameter (int between 0..100). """
+        temp_max_distance = self.extractor.max_distance_from_ext_top_point_to_palm_center
+
         if self.move_forward < 0:
             return 0
         return self.move_forward if self.move_forward <= 100 else 100
@@ -689,7 +746,8 @@ class Controller(Icontroller):
                     # Send right_X and right_Y movements only when out of safety circle.
                     left = self.get_left_param()
                     self.drone.left(left)
-                    self.drone.right(0)
+                    right = self.get_right_param()
+                    self.drone.right(right)
                     self.drone.up(0)
                     self.drone.down(0)
 
