@@ -309,8 +309,7 @@ class Detector:
         vertic_y_end = (int(temp_output.shape[1] / 2), temp_output.shape[0])
 
         # draw movement axes.
-        cv2.line(temp_output, horiz_axe_start, horiz_axe_end
-                 , (0, 0, 255), thickness=3)
+        cv2.line(temp_output, horiz_axe_start, horiz_axe_end, (0, 0, 255), thickness=3)
         cv2.line(temp_output, vertic_y_start, vertic_y_end
                  , (0, 0, 255), thickness=3)
 
