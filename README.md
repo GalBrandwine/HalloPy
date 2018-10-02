@@ -19,9 +19,7 @@ Dependency libraries:
 
 2.1 turn on Tello drone and connect to it's wifi
 
-2.2 from terminal: 
-
-    $ python hallo.py
+2.2 there's no setup.py yet, so in order to run this project, open the project in an IDE and run: hallo.py
 
 3
   Application usage:

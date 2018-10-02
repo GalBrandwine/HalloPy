@@ -1,6 +1,7 @@
 """Multi class incapsulation implementation.  """
 import time
 
+import av
 import cv2
 import logging
 import numpy as np
@@ -634,7 +635,23 @@ class Controller(Icontroller):
         """Function for starting image pipe processing.  """
         camera = cv2.VideoCapture(0)
         cv2.namedWindow('Controller')
+        cv2.namedWindow('Drone video stream')
+        # Init video stream buffer.
+        container = av.open(self.drone.get_video_stream())
+        # skip first 300 frames
+        frame_skip = 300
+
         while self.flags_handler.quit_flag is False:
+            image = None
+            for frame in container.decode(video=0):
+                if 0 < frame_skip:
+                    frame_skip = frame_skip - 1
+                    continue
+                start_time = time.time()
+                image = cv2.cvtColor(np.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+
+                frame_skip = int((time.time() - start_time) / frame.time_base)
+
             ret, frame = camera.read()
 
             # Controller processing pipe:
@@ -656,7 +673,6 @@ class Controller(Icontroller):
                 outer_image[0: inner_image.shape[0],
                 outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
                 cv2.imshow('Controller', outer_image)
-
                 self.get_drone_commands()
 
             self.flags_handler.keyboard_input = cv2.waitKey(1)
