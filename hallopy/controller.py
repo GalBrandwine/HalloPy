@@ -411,7 +411,8 @@ class Extractor:
 
             if self.tracker is None:
                 # Initiate tracker.
-                points_to_track = [self.ext_left, self.ext_right, self.ext_bot, self.ext_top, self.palm_center_point]
+                points_to_track = [self.ext_top,
+                                   self.palm_center_point]  # [self.ext_left, self.ext_right, self.ext_bot, self.ext_top, self.palm_center_point]
                 self.tracker = Tracker(self.flags_handler, points_to_track, self.detector.raw_input_frame)
 
             else:

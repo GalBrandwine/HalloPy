@@ -21,7 +21,7 @@ Dependency libraries:
 
 2.2 from terminal: 
 
-    $ python Hallo.py
+    $ python hallo.py
 
 3
   Application usage:
