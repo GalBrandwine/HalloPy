@@ -13,14 +13,11 @@ Dependency libraries:
 
 # Usage:
 
-1. make sure you have all dependency libraries.
+1. Make sure you have all dependency libraries.
   for great openCV installation tutorial refer to:
   https://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/
-
-2.1 turn on Tello drone and connect to it's wifi
-
-2.2 there's no setup.py yet, so in order to run this project, open the project in an IDE and run: hallo.py
-
+2. Turn on Tello drone and connect to it's wifi
+    1. there's no setup.py yet, so in order to run this project, open the project in an IDE and run: hallo.py
 3. Application usage:
    
     press 'b' - to detect palm ( depend on the environment lights, a Thresh Hold slider tuning may be needed)
@@ -41,7 +38,6 @@ Dependency libraries:
     press 'z' - to adjust background' threshold - for thinner palm recognition
   
     press 'esc' to exit program ( only after drone landed)
-    
 4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4)
 
 
