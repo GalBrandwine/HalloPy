@@ -21,7 +21,7 @@ Dependency libraries:
 
 2.2 there's no setup.py yet, so in order to run this project, open the project in an IDE and run: hallo.py
 
-3 Application usage:
+3. Application usage:
    
     press 'b' - to detect palm ( depend on the environment lights, a Thresh Hold slider tuning may be needed)
       center the detected palm at the center of the detection_frame FOR 5 seconds 
@@ -42,7 +42,7 @@ Dependency libraries:
   
     press 'esc' to exit program ( only after drone landed)
     
-4 Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4)
+4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4)
 
 
 # Tanks to:
