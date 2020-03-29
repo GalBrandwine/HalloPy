@@ -1,4 +1,11 @@
 """hallopy script is an example how to use the Hand_recognition_controller.  """
+
+import os
+import sys
+
+cwd = os.getcwd()
+sys.path.insert(0, cwd)
+
 import tellopy
 from hallopy.controller import Controller
 

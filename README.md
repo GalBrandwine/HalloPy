@@ -11,6 +11,9 @@ Dependency libraries:
 * tellopy repository - https://github.com/hanyazou/TelloPy.git
 * numpy 1.14.5
 
+# Docker installation:
+[running docker with gui](https://marcosnietoblog.wordpress.com/2017/04/30/docker-image-with-opencv-with-x11-forwarding-for-gui/)   
+
 # Usage:
 
 1. Make sure you have all dependency libraries.
@@ -19,13 +22,14 @@ Dependency libraries:
 2. Turn on Tello drone and connect to it's wifi
     1. there's no setup.py yet, so in order to run this project, open the project in an IDE and run: hallo.py
 3. Application usage:
-   
+   ```
     press 'b' - to detect palm ( depend on the environment lights, a Thresh Hold slider tuning may be needed)
-      center the detected palm at the center of the detection_frame FOR 5 seconds 
-      pressing b again will reset calibration.
-    
-  After center-circle become GREEN (meaning we are now calibrated):
-  
+    center the detected palm at the center of the detection_frame FOR 5 seconds 
+    pressing b again will reset calibration.
+   ```
+   
+   After center-circle become GREEN (meaning we are now calibrated):
+    ```
     press 't' - to take off ( a 3 second hold-up, until drone is in the air)
       after landing - if program is calibrated, press t again to take-off
       
@@ -38,6 +42,7 @@ Dependency libraries:
     press 'z' - to adjust background' threshold - for thinner palm recognition
   
     press 'esc' to exit program ( only after drone landed)
+    ```
 4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4)
 
 

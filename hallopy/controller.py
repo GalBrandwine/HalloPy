@@ -5,7 +5,7 @@ import av
 import cv2
 import logging
 import numpy as np
-from HalloPy.hallopy.icontroller import Icontroller
+from hallopy.icontroller import Icontroller
 from hallopy import utils
 
 # Create loggers.
@@ -280,7 +280,7 @@ class Detector:
         thresh = cv2.dilate(thresh, None, iterations=2)
 
         # Get the contours.
-        _, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         try:
             # Find the biggest area.
@@ -635,25 +635,25 @@ class Controller(Icontroller):
         """Function for starting image pipe processing.  """
         camera = cv2.VideoCapture(0)
         cv2.namedWindow('Controller')
-        cv2.namedWindow('Drone video stream')
+
+        # cv2.namedWindow('Drone video stream')
         # Init video stream buffer.
-        container = av.open(self.drone.get_video_stream())
+        # container = av.open(self.drone.get_video_stream())
         # skip first 300 frames
         frame_skip = 300
 
         while self.flags_handler.quit_flag is False:
-            image = None
-            for frame in container.decode(video=0):
-                if 0 < frame_skip:
-                    frame_skip = frame_skip - 1
-                    continue
-                start_time = time.time()
-                image = cv2.cvtColor(np.array(frame.to_image()), cv2.COLOR_RGB2BGR)
-
-                frame_skip = int((time.time() - start_time) / frame.time_base)
+            # image = None
+            # for frame in container.decode(video=0):
+            #     if 0 < frame_skip:
+            #         frame_skip = frame_skip - 1
+            #         continue
+            #     start_time = time.time()
+            #     image = cv2.cvtColor(np.array(frame.to_image()), cv2.COLOR_RGB2BGR)
+            #
+            #     frame_skip = int((time.time() - start_time) / frame.time_base)
 
             ret, frame = camera.read()
-
             # Controller processing pipe:
             # 1. Draw ROI on frame.
             self.frame_handler.input_frame = frame
