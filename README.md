@@ -23,7 +23,7 @@ xhost +  && docker run --rm -it --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tm
 
 For flags explanation: [running docker with gui](https://marcosnietoblog.wordpress.com/2017/04/30/docker-image-with-opencv-with-x11-forwarding-for-gui/)   
 
-## None docker users:
+## Non docker users:
 Environment:
 * ubuntu 19.10
 * python 3.7
