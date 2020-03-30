@@ -4,9 +4,7 @@ FROM ubuntu:latest
 # Set the working directory
 WORKDIR /usr/src/app
 
-
 # Install any needed packages specified in requirements.txt
-# RUN pip install --trusted-host pypi.python.org -r requirements.txt
 RUN apt-get update
 RUN apt-get install -y pkg-config
 RUN apt install -y python3-dev
@@ -22,7 +20,4 @@ RUN pip3 install tellopy
 COPY . .
 
 # Run hellopy controller
-RUN pwd
-#CMD ["ls -ltrh","/dev/video*"]
 CMD ["python3","./hallopy/hallo.py"]
-#CMD ["python3","./hallopy/cv2_test.py"]
