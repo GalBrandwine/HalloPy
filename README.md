@@ -3,7 +3,7 @@ DJI Tello controller using hand gestures python app
 
 
 ## Docker installation in 3 steps:
-Tested on ubuntu 19.
+Tested on ubuntu 19.10
 
 ### step 1
 ```shell script
