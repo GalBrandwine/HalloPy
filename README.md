@@ -67,7 +67,7 @@ python ./hallopy/hallo.py
   
     press 'esc' to exit program ( only after drone landed)
     ```
-4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4)
+4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4), and [here](https://youtu.be/6THFNt_5LNg)
 
 
 # Tanks to:
