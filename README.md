@@ -2,29 +2,20 @@
 DJI Tello controller using hand gestures python app
 
 
-Environment:
-* ubuntu 16.4
-* python 3.5.2
-
-Dependency libraries:
-* OpenCV 3.3.2
-* tellopy repository - https://github.com/hanyazou/TelloPy.git
-* numpy 1.14.5
-
-# Docker installation in 3 steps:
+## Docker installation in 3 steps:
 Tested on ubuntu 19.
 
-## step 1
+### step 1
 ```shell script
 git clone github/GalBrandwine/hallopy.git
 cd HalloPy
 ```
-## step 2
+### step 2
 ```shell script
 docker build --network=host  --tag hallopy:1.3 .
 ```
 (make sure you have docker [installed](https://docs.docker.com/get-started/).)
-## step 3
+### step 3
 (Make sure you're connected to the TELLO wifi)
 ```shell script
 xhost +  && docker run --rm -it --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --privileged -v /dev/video0:/dev/video0 --name hallopy hallopy:1.3 
@@ -32,7 +23,22 @@ xhost +  && docker run --rm -it --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tm
 
 For flags explanation: [running docker with gui](https://marcosnietoblog.wordpress.com/2017/04/30/docker-image-with-opencv-with-x11-forwarding-for-gui/)   
 
-# Usage:
+## None docker users:
+Environment:
+* ubuntu 19.10
+* python 3.7
+
+Dependency libraries installation:
+* pip install av==6.1.2
+* pip install opencv-python
+* pip install tellopy
+
+### Run
+From directory `/HalloPy/`:
+```shell script
+python ./hallopy/hallo.py
+```
+## Controller Usage:
 
 1. Make sure you have all dependency libraries.
   for great openCV installation tutorial refer to:
