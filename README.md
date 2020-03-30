@@ -12,6 +12,22 @@ Dependency libraries:
 * numpy 1.14.5
 
 # Docker installation:
+3 steps.
+## step 1
+```shell script
+git clone github/GalBrandwine/hallopy.git
+```
+## step 2
+```shell script
+docker build --network=host  --tag hallopy:1.3 .
+```
+## step 3
+```shell script
+xhost +  && docker run --rm -it --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --privileged -v /dev/video0:/dev/video0 --name hallopy hallopy:1.3 
+# or
+runHallopy.sh
+```
+
 [running docker with gui](https://marcosnietoblog.wordpress.com/2017/04/30/docker-image-with-opencv-with-x11-forwarding-for-gui/)   
 
 # Usage:
