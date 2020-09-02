@@ -7,7 +7,7 @@ Tested on ubuntu 19.10
 
 ### step 1
 ```shell script
-git clone github/GalBrandwine/hallopy.git
+git clone https://github.com/GalBrandwine/HalloPy
 cd HalloPy
 ```
 ### step 2
