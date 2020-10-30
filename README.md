@@ -70,7 +70,7 @@ python ./hallopy/hallo.py
 4. Video explaining hands movements for controlling the drone can be found [here](https://youtu.be/NSwKCzxFBv4), and [here](https://youtu.be/6THFNt_5LNg)
 
 
-# Tanks to:
+# Thanks to:
 * OpenCV - for the greatest computer Vision library in this world ( and others)
 
 * tellopy repo - for making a super friendly drone api
