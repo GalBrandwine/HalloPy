@@ -1,0 +1,3 @@
+[submodule "thirdparty/TelloPy"]
+	path = thirdparty/TelloPy
+	url = git@github.com:hanyazou/TelloPy.git

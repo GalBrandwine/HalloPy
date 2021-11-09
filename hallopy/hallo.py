@@ -5,7 +5,7 @@ import sys
 
 cwd = os.getcwd()
 sys.path.insert(0, cwd)
-
+sys.path.insert(0,cwd+"/thirdparty/TelloPy")
 import tellopy
 from hallopy.controller import Controller
 
