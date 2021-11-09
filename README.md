@@ -11,6 +11,7 @@ Tested on ubuntu 19.10
 ```shell script
 git clone https://github.com/GalBrandwine/HalloPy
 cd HalloPy
+git submodule update --init --recursive
 ```
 
 ### step 2
@@ -42,7 +43,6 @@ Dependency libraries installation:
 
 * pip install av==6.1.2
 * pip install opencv-python
-* pip install tellopy // Redundant. Added as submodule
 
 ### Run
 
