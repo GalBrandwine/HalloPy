@@ -18,7 +18,8 @@ extractor_logger = logging.getLogger('extractor_handler')
 controller_logger = logging.getLogger('controller_handler')
 ch = logging.StreamHandler()
 # create formatter and add it to the handlers.
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to loggers.
 flags_logger.addHandler(ch)
@@ -91,7 +92,8 @@ class FlagsHandler:
                 self.logger.info("control switched to detected hand")
                 self.hand_control = True
             else:
-                self.logger.info("Drone not in the air, can't change control to hand")
+                self.logger.info(
+                    "Drone not in the air, can't change control to hand")
 
         elif input_from_key_board == ord('z'):
             """ calibrating Threshold from keyboard """
@@ -135,14 +137,16 @@ class FrameHandler:
             self.logger.exception(error)
             return
 
-        self._input_frame = cv2.bilateralFilter(input_frame_from_camera, 5, 50, 100)  # smoothing filter
+        self._input_frame = cv2.bilateralFilter(
+            input_frame_from_camera, 5, 50, 100)  # smoothing filter
         self._input_frame = cv2.flip(input_frame_from_camera, 1)
         self._draw_roi()
 
     def _draw_roi(self):
         """Function for drawing the ROI on input frame.  """
         cv2.rectangle(self._input_frame, (int(self._cap_region_x_begin * self._input_frame.shape[1]) - 20, 0),
-                      (self._input_frame.shape[1], int(self._cap_region_y_end * self._input_frame.shape[0]) + 20),
+                      (self._input_frame.shape[1], int(
+                          self._cap_region_y_end * self._input_frame.shape[0]) + 20),
                       (255, 0, 0), 2)
 
 
@@ -187,7 +191,7 @@ class FaceProcessor:
         # Black rectangle over faces to remove skin noises.
         for (x, y, w, h) in faces:
             self._preprocessed_input_frame[y - self._face_padding_y:y + h + self._face_padding_y,
-            x - self._face_padding_x:x + w + self._face_padding_x, :] = 0
+                                           x - self._face_padding_x:x + w + self._face_padding_x, :] = 0
 
 
 class BackGroundRemover:
@@ -216,21 +220,23 @@ class BackGroundRemover:
     def detected_frame(self, preprocessed_faced_covered_input_frame):
         """Function for removing background from input frame. """
         if self.flag_handler.background_capture_required is True:
-            self._bg_model = cv2.createBackgroundSubtractorMOG2(0, self._bg_Sub_Threshold)
+            self._bg_model = cv2.createBackgroundSubtractorMOG2(
+                0, self._bg_Sub_Threshold)
             self.flag_handler.background_capture_required = False
         if self._bg_model is not None:
-            fgmask = self._bg_model.apply(preprocessed_faced_covered_input_frame, learningRate=self._learning_Rate)
+            fgmask = self._bg_model.apply(
+                preprocessed_faced_covered_input_frame, learningRate=self._learning_Rate)
             kernel = np.ones((3, 3), np.uint8)
             fgmask = cv2.erode(fgmask, kernel, iterations=1)
             res = cv2.bitwise_and(preprocessed_faced_covered_input_frame, preprocessed_faced_covered_input_frame,
                                   mask=fgmask)
             self._input_frame_with_hand = res[
-                                          0:int(
-                                              self._cap_region_y_end * preprocessed_faced_covered_input_frame.shape[0]),
-                                          int(self._cap_region_x_begin * preprocessed_faced_covered_input_frame.shape[
-                                              1]):
-                                          preprocessed_faced_covered_input_frame.shape[
-                                              1]]  # clip the ROI
+                0:int(
+                    self._cap_region_y_end * preprocessed_faced_covered_input_frame.shape[0]),
+                int(self._cap_region_x_begin * preprocessed_faced_covered_input_frame.shape[
+                    1]):
+                preprocessed_faced_covered_input_frame.shape[
+                    1]]  # clip the ROI
 
 
 class Detector:
@@ -273,23 +279,29 @@ class Detector:
             self.flags_handler.make_threshold_thicker = False
             self._threshold = self._threshold + 1
 
-        temp_detected_gray = cv2.cvtColor(input_frame_with_background_removed, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(temp_detected_gray, (self._blur_Value, self._blur_Value), 0)
-        thresh = cv2.threshold(blur, self._threshold, 255, cv2.THRESH_BINARY)[1]
+        temp_detected_gray = cv2.cvtColor(
+            input_frame_with_background_removed, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(
+            temp_detected_gray, (self._blur_Value, self._blur_Value), 0)
+        thresh = cv2.threshold(blur, self._threshold,
+                               255, cv2.THRESH_BINARY)[1]
         thresh = cv2.erode(thresh, None, iterations=2)
         thresh = cv2.dilate(thresh, None, iterations=2)
 
         # Get the contours.
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         try:
             # Find the biggest area.
             self.max_area_contour = max(contours, key=cv2.contourArea)
             if self.max_area_contour is None:
                 self.max_area_contour = [[(0, 0)]]
-            self.detected_out_put_center = self._draw_axes(input_frame_with_background_removed)
+            self.detected_out_put_center = self._draw_axes(
+                input_frame_with_background_removed)
         except (AttributeError, ValueError) as error:
-            self.logger.debug("something went wrong when Detector object received input_frame!: {}".format(error))
+            self.logger.debug(
+                "something went wrong when Detector object received input_frame!: {}".format(error))
 
     def _draw_axes(self, detected):
         """Function for drawing axes on detected_out_put.
@@ -302,7 +314,8 @@ class Detector:
         # np.array are opposite than cv2 row/cols indexing.
         detected_out_put_center = (
             int(temp_output.shape[1] / 2), int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
-        horiz_axe_start = (0, int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
+        horiz_axe_start = (
+            0, int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
         horiz_axe_end = (
             temp_output.shape[1], int(temp_output.shape[0] / 2) + self.horiz_axe_offset)
 
@@ -310,9 +323,10 @@ class Detector:
         vertic_y_end = (int(temp_output.shape[1] / 2), temp_output.shape[0])
 
         # draw movement axes.
-        cv2.line(temp_output, horiz_axe_start, horiz_axe_end, (0, 0, 255), thickness=3)
-        cv2.line(temp_output, vertic_y_start, vertic_y_end
-                 , (0, 0, 255), thickness=3)
+        cv2.line(temp_output, horiz_axe_start,
+                 horiz_axe_end, (0, 0, 255), thickness=3)
+        cv2.line(temp_output, vertic_y_start,
+                 vertic_y_end, (0, 0, 255), thickness=3)
 
         self._draw_contours(temp_output)
         self._detected_out_put = temp_output
@@ -328,8 +342,10 @@ class Detector:
             hand_color = (0, 255, 0)
         else:
             hand_color = (0, 0, 255)
-        assert hand_color is not None, self.logger.error("No flags_handler.hand_control initiated")
-        cv2.drawContours(input_frame_with_background_removed, [self.max_area_contour], 0, hand_color, thickness=2)
+        assert hand_color is not None, self.logger.error(
+            "No flags_handler.hand_control initiated")
+        cv2.drawContours(input_frame_with_background_removed, [
+                         self.max_area_contour], 0, hand_color, thickness=2)
 
 
 class Extractor:
@@ -380,11 +396,13 @@ class Extractor:
 
     @extract.setter
     def extract(self, detector):
-        assert isinstance(detector, Detector), self.logger.error("input is not Detector object!")
+        assert isinstance(detector, Detector), self.logger.error(
+            "input is not Detector object!")
         self.detector = detector
         self._detected_hand = detector._detected_out_put
         # Calculate palm center of mass --> palms center coordination.
-        self.palm_center_point = self._hand_center_of_mass(detector.max_area_contour)
+        self.palm_center_point = self._hand_center_of_mass(
+            detector.max_area_contour)
 
         if self.flags_handler.calibrated is False:
             self.logger.info("calibrating...")
@@ -414,16 +432,19 @@ class Extractor:
                 # Initiate tracker.
                 points_to_track = [self.ext_top,
                                    self.palm_center_point]  # [self.ext_left, self.ext_right, self.ext_bot, self.ext_top, self.palm_center_point]
-                self.tracker = Tracker(self.flags_handler, points_to_track, self.detector.raw_input_frame)
+                self.tracker = Tracker(
+                    self.flags_handler, points_to_track, self.detector.raw_input_frame)
 
             else:
                 # Use tracker to track.
                 points_to_track = self.tracker.points_to_track
-                self.tracker.track(points_to_track, self.detector.raw_input_frame)
+                self.tracker.track(
+                    points_to_track, self.detector.raw_input_frame)
                 points_to_draw = self.tracker.points_to_track
                 try:
                     # Get only the contours middle-finger coordination.
-                    self.ext_top = tuple(points_to_draw[points_to_draw[:, :, 1].argmin()][0])
+                    self.ext_top = tuple(
+                        points_to_draw[points_to_draw[:, :, 1].argmin()][0])
                 except ValueError:
                     self.logger.debug("points_to_draw is empty")
         # Calculate palms angle.
@@ -444,17 +465,22 @@ class Extractor:
             image = self._detected_hand.copy()
 
             if self.flags_handler.calibrated is True:
-                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=2)
+                cv2.circle(image, self.detector.detected_out_put_center,
+                           self.calib_radius, (0, 255, 0), thickness=2)
             elif self.flags_handler.in_home_center is True:
-                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 255, 0), thickness=-1)
+                cv2.circle(image, self.detector.detected_out_put_center,
+                           self.calib_radius, (0, 255, 0), thickness=-1)
             else:
-                cv2.circle(image, self.detector.detected_out_put_center, self.calib_radius, (0, 0, 255), thickness=2)
+                cv2.circle(image, self.detector.detected_out_put_center,
+                           self.calib_radius, (0, 0, 255), thickness=2)
 
             self._draw_forward_backward_line(image)
             self._draw_palm_rotation(image)
 
-            cv2.circle(image, self.ext_top, 8, (255, 0, 0), -1)
-            cv2.circle(image, self.palm_center_point, 8, (255, 255, 255), thickness=-1)
+            cv2.circle(image, (int(self.ext_top[0]), int(
+                self.ext_top[1])), 8, (255, 0, 0), -1)
+            cv2.circle(image, self.palm_center_point,
+                       8, (255, 255, 255), thickness=-1)
 
             return image
 
@@ -462,12 +488,18 @@ class Extractor:
         """Draw forward/backward line.  """
         temp_delta = int(
             self.max_distance_from_ext_top_point_to_palm_center - self.max_distance_from_ext_top_point_to_palm_center / 5)
-        self.zero_point = (self.ext_top[0], self.palm_center_point[1] - temp_delta)
-        self.forward_backward_movement_delta = int(self.max_distance_from_ext_top_point_to_palm_center / 3)
-        self.forward_point = (self.zero_point[0], self.zero_point[1] + self.forward_backward_movement_delta)
-        self.backward_point = (self.zero_point[0], self.zero_point[1] - self.forward_backward_movement_delta)
-        cv2.line(image, self.forward_point, self.zero_point, (0, 255, 0), thickness=5)
-        cv2.line(image, self.zero_point, self.backward_point, (0, 0, 255), thickness=5)
+        self.zero_point = (
+            self.ext_top[0], self.palm_center_point[1] - temp_delta)
+        self.forward_backward_movement_delta = int(
+            self.max_distance_from_ext_top_point_to_palm_center / 3)
+        self.forward_point = (
+            self.zero_point[0], self.zero_point[1] + self.forward_backward_movement_delta)
+        self.backward_point = (
+            self.zero_point[0], self.zero_point[1] - self.forward_backward_movement_delta)
+        cv2.line(image, (int(self.forward_point[0]),int(self.forward_point[1])),
+                 (int(self.zero_point[0]),int(self.zero_point[1])), (0, 255, 0), thickness=5)
+        cv2.line(image, (int(self.zero_point[0]),int(self.zero_point[1])), (int(self.backward_point[0]),int(self.backward_point[1])),
+                 (0, 0, 255), thickness=5)
 
     def _draw_palm_rotation(self, image):
         """To draw the ellipse, we need to pass several arguments.
@@ -482,7 +514,8 @@ class Extractor:
         axis_length = int(self.max_distance_from_ext_top_point_to_palm_center)
         starting_angle = 270
         end_angle = 270 + (90 - self.palm_angle_in_degrees)
-        cv2.ellipse(image, center_location, (axis_length, axis_length), 0, starting_angle, end_angle, (255, 0, 255), 3)
+        cv2.ellipse(image, center_location, (axis_length, axis_length),
+                    0, starting_angle, end_angle, (255, 0, 255), 3)
 
     def _hand_center_of_mass(self, hand_contour):
         """Find contours center of mass.  """
@@ -503,7 +536,8 @@ class Extractor:
                                 1]]  # helper to calculate angle between middle finger and center of palm
 
         try:
-            angle = self.simple_angle_calculator(self.ext_top, angelPointHelper, self.palm_center_point)
+            angle = self.simple_angle_calculator(
+                self.ext_top, angelPointHelper, self.palm_center_point)
             self.palm_angle_in_degrees = np.rad2deg(angle)
         except ZeroDivisionError:
             pass
@@ -517,7 +551,8 @@ class Extractor:
         a = np.math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
         b = np.math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
         c = np.math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
-        angle = np.math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
+        angle = np.math.acos((b ** 2 + c ** 2 - a ** 2) /
+                             (2 * b * c))  # cosine theorem
         return angle
 
     def _calculate_palm_distance_from_center(self):
@@ -526,7 +561,7 @@ class Extractor:
         cX, cY = self.palm_center_point
 
         radius = np.math.sqrt((cX - frameCenter[0]) ** 2 + (
-                cY - frameCenter[1]) ** 2)
+            cY - frameCenter[1]) ** 2)
 
         if radius <= self.calib_radius:
             # Palm is centered with self._detected_frame.
@@ -566,7 +601,8 @@ class Tracker:
 
         points_reshaped = [list(elem) for elem in points_to_track]
         self.logger.debug("points_to_track: {}".format(points_reshaped))
-        self._p0 = np.array(points_reshaped, dtype=np.float32).reshape(-1, 1, 2)
+        self._p0 = np.array(
+            points_reshaped, dtype=np.float32).reshape(-1, 1, 2)
 
         # Capture current frame.
         frame_gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
@@ -591,7 +627,8 @@ class Tracker:
 
         """
         # Calculate optical flow
-        p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **self.lk_params)
+        p1, st, err = cv2.calcOpticalFlowPyrLK(
+            old_gray, frame_gray, p0, None, **self.lk_params)
         if p1 is None:
             good_new = p0[st == 1]
         else:
@@ -671,7 +708,7 @@ class Controller(Icontroller):
                 # Draw detected hand on outer image.
                 outer_image = self.frame_handler.input_frame
                 outer_image[0: inner_image.shape[0],
-                outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
+                            outer_image.shape[1] - inner_image.shape[1]: outer_image.shape[1]] = inner_image
                 cv2.imshow('Controller', outer_image)
                 self.get_drone_commands()
 
@@ -684,7 +721,8 @@ class Controller(Icontroller):
 
     def get_up_param(self):
         """Return up parameter (int between 0..100). """
-        temp_move_up = self.detector.detected_out_put_center[1] - self.extractor.palm_center_point[1]
+        temp_move_up = self.detector.detected_out_put_center[1] - \
+            self.extractor.palm_center_point[1]
         self.move_up = temp_move_up
         if self.move_up <= 0:
             return 0
@@ -692,7 +730,8 @@ class Controller(Icontroller):
 
     def get_down_param(self):
         """Return down parameter (int between 0..100). """
-        temp_move_down = self.extractor.palm_center_point[1] - self.detector.detected_out_put_center[1]
+        temp_move_down = self.extractor.palm_center_point[1] - \
+            self.detector.detected_out_put_center[1]
         self.move_down = temp_move_down
         if self.move_down < 0:
             return 0
@@ -700,7 +739,8 @@ class Controller(Icontroller):
 
     def get_left_param(self):
         """Return left parameter (int between 0..100). """
-        temp_move_left = self.detector.detected_out_put_center[0] - self.extractor.palm_center_point[0]
+        temp_move_left = self.detector.detected_out_put_center[0] - \
+            self.extractor.palm_center_point[0]
         self.move_left = temp_move_left
         if self.move_left < 0:
             return 0
@@ -708,7 +748,8 @@ class Controller(Icontroller):
 
     def get_right_param(self):
         """Return right parameter (int between 0..100). """
-        temp_move_right = self.extractor.palm_center_point[0] - self.detector.detected_out_put_center[0]
+        temp_move_right = self.extractor.palm_center_point[0] - \
+            self.detector.detected_out_put_center[0]
         self.move_right = temp_move_right
         if self.move_right < 0:
             return 0
@@ -732,7 +773,8 @@ class Controller(Icontroller):
 
     def get_forward_param(self):
         """Return move forward parameter (int between 0..100). """
-        temp_forward_param = self.extractor.ext_top[1] - self.extractor.zero_point[1]
+        temp_forward_param = self.extractor.ext_top[1] - \
+            self.extractor.zero_point[1]
         self.move_forward = temp_forward_param
         if self.move_forward < 0:
             return 0
@@ -740,7 +782,8 @@ class Controller(Icontroller):
 
     def get_backward_param(self):
         """Return move backward parameter (int between 0..100). """
-        temp_backward_param = self.extractor.zero_point[1] - self.extractor.ext_top[1]
+        temp_backward_param = self.extractor.zero_point[1] - \
+            self.extractor.ext_top[1]
         self.move_backward = temp_backward_param
         if self.move_backward < 0:
             return 0
